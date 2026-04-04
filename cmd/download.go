@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -26,7 +27,12 @@ func Download(ctx context.Context, args []string) error {
 
 	td := mindl.NewTemplateData()
 	td.Version = *fVersion
-	result, err := mindl.Template(*fURL, td)
+	templatedURL, err := mindl.Template(*fURL, td)
+	if err != nil {
+		return err
+	}
+
+	templatedExe, err := mindl.Template(*fExecutable, td)
 	if err != nil {
 		return err
 	}
@@ -35,6 +41,8 @@ func Download(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	sumKey := fmt.Sprintf("%s#%s", templatedURL, templatedExe)
 
 	_, err = os.Stat(*fOut)
 	if err != nil && !os.IsNotExist(err) {
@@ -52,7 +60,7 @@ func Download(ctx context.Context, args []string) error {
 		}
 	}
 
-	u, err := url.Parse(result)
+	u, err := url.Parse(templatedURL)
 	if err != nil {
 		return err
 	}
@@ -62,11 +70,11 @@ func Download(ctx context.Context, args []string) error {
 	tmpdir := os.TempDir()
 	outfile := filepath.Join(tmpdir, basefilename)
 
-	if err := mindl.Download(ctx, result, outfile); err != nil {
+	if err := mindl.Download(ctx, templatedURL, outfile); err != nil {
 		return err
 	}
 
-	if err := mindl.Unarchive(outfile, *fExecutable, *fOut); err != nil {
+	if err := mindl.Unarchive(outfile, templatedExe, *fOut); err != nil {
 		return err
 	}
 
@@ -79,7 +87,7 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err := db.Set(result, newHashOnDisk, "fnv128a"); err != nil {
+	if err := db.Set(sumKey, newHashOnDisk, "fnv128a"); err != nil {
 		return err
 	}
 

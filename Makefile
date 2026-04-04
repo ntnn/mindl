@@ -26,5 +26,5 @@ $(GOLANGCI_LINT):
 	$(GO) run . download \
 		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz' \
 		-version $(GOLANGCI_LINT_VER) \
-		-executable $(GOLANGCI_LINT_BIN) \
+		-executable golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}/$(GOLANGCI_LINT_BIN) \
 		-out $@
