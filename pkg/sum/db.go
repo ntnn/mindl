@@ -17,33 +17,83 @@ type DB struct {
 }
 
 // entryLength is used when reading records to validate the number of fields.
-const entryLength = 3
+const entryLength = 6
 
 // Entry represents a single checksum record.
 type Entry struct {
-	Key     string
-	Sum     string
-	Comment string
+	URLTemplate string
+	InArchive   string
+	OS          string
+	Arch        string
+	Sum         string
+	Comment     string
 }
 
 // Equal returns true if the entry and other are identical.
 func (e Entry) Equal(other Entry) bool {
-	return e.Key == other.Key && e.Sum == other.Sum && e.Comment == other.Comment
+	return e.URLTemplate == other.URLTemplate &&
+		e.InArchive == other.InArchive &&
+		e.OS == other.OS &&
+		e.Arch == other.Arch &&
+		e.Sum == other.Sum &&
+		e.Comment == other.Comment
 }
 
-// Set stores an entry.
-func (db *DB) Set(key, sum, comment string) {
-	db.entries[key] = Entry{
-		Key:     key,
-		Sum:     sum,
-		Comment: comment,
+func (e Entry) key() string {
+	return fmt.Sprintf("%s#%s#%s#%s", e.URLTemplate, e.InArchive, e.OS, e.Arch)
+}
+
+func (e Entry) records() []string {
+	return []string{
+		e.URLTemplate,
+		e.InArchive,
+		e.OS,
+		e.Arch,
+		e.Sum,
+		e.Comment,
 	}
 }
 
+// Set stores an entry.
+func (db *DB) Set(urlTemplate, inArchive, os, arch, sum, comment string) {
+	e := Entry{
+		URLTemplate: urlTemplate,
+		InArchive:   inArchive,
+		OS:          os,
+		Arch:        arch,
+		Sum:         sum,
+		Comment:     comment,
+	}
+
+	db.entries[e.key()] = e
+}
+
 // Get retrieves an entry by key.
-func (db *DB) Get(key string) (Entry, bool) {
+func (db *DB) Get(urlTemplate, inArchive, os, arch string) (Entry, bool) {
+	key := Entry{
+		URLTemplate: urlTemplate,
+		InArchive:   inArchive,
+		OS:          os,
+		Arch:        arch,
+	}.key()
+
 	val, ok := db.entries[key]
 	return val, ok
+}
+
+// GetAll retrieves all entries for the given URL template.
+func (db *DB) GetAll(urlTemplate, inArchive string) []Entry {
+	es := []Entry{}
+	for _, entry := range db.entries {
+		if entry.URLTemplate != urlTemplate {
+			continue
+		}
+		if entry.InArchive != inArchive {
+			continue
+		}
+		es = append(es, entry)
+	}
+	return es
 }
 
 // Read parses a DB from in.
@@ -64,7 +114,7 @@ func Read(in io.Reader) (*DB, error) {
 		if len(record) != entryLength {
 			return nil, fmt.Errorf("record is not three columns wide: %q", record)
 		}
-		db.Set(record[0], record[1], record[2])
+		db.Set(record[0], record[1], record[2], record[3], record[4], record[5])
 	}
 
 	return db, nil
@@ -108,7 +158,7 @@ func (db *DB) Write(out io.Writer) error {
 
 	for _, key := range keys {
 		entry := db.entries[key]
-		if err := writer.Write([]string{entry.Key, entry.Sum, entry.Comment}); err != nil {
+		if err := writer.Write(entry.records()); err != nil {
 			return err
 		}
 	}

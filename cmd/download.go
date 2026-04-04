@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 
 	"github.com/ntnn/mindl/pkg/mindl"
 	"github.com/ntnn/mindl/pkg/sum"
@@ -18,43 +16,30 @@ import (
 func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL Template")
+	fInArchive := fs.String("inarchive", "", "File to extract from archive")
 	fVersion := fs.String("version", "", "Version to download")
-	fExtract := fs.String("extract", "", "File to extract from archive")
 	fOut := fs.String("out", "", "Where to place the extracted file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	td := mindl.NewTemplateData()
+	mindlOS := mindl.OS()
+	mindlArch := mindl.Arch()
+
+	td := mindl.NewTemplateData(mindlOS, mindlArch)
 	td.Version = *fVersion
-	templatedURL, err := mindl.Template(*fURL, td)
-	if err != nil {
-		return err
-	}
-
-	templatedExe, err := mindl.Template(*fExtract, td)
-	if err != nil {
-		return err
-	}
-
-	templatedOut, err := mindl.Template(*fOut, td)
-	if err != nil {
-		return err
-	}
 
 	db, err := sum.Open("mindl.sum")
 	if err != nil {
 		return err
 	}
 
-	sumKey := fmt.Sprintf("%s#%s", templatedURL, templatedExe)
-
-	urlEntry, ok := db.Get(sumKey)
+	urlEntry, ok := db.Get(*fURL, *fInArchive, mindlOS, mindlArch)
 	if !ok && !mindl.ShouldUpdate() {
-		return fmt.Errorf("mindl should not update, but the required hash is not in the sumdb: %q", sumKey)
+		return errors.New("could not update, required hash not found in mindl.sum")
 	}
 
-	matches, err := sum.PathMatchesHash(templatedOut, sum.Fnv128aPath, urlEntry.Sum)
+	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
 	if err != nil {
 		return err
 	}
@@ -62,33 +47,32 @@ func Download(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	u, err := url.Parse(templatedURL)
+	tool := mindl.Tool{
+		URLTemplate: *fURL,
+		InArchive:   *fInArchive,
+		ExtractTo:   *fOut,
+	}
+
+	th, err := mindl.Handle(tool, td)
+	if err != nil {
+		return err
+	}
+	defer th.Cleanup()
+
+	if err := th.Download(ctx); err != nil {
+		return err
+	}
+
+	hash, err := th.Hash(sum.Fnv128aPath)
 	if err != nil {
 		return err
 	}
 
-	basefilename := filepath.Base(u.Path)
-
-	tmpdir := os.TempDir()
-	outfile := filepath.Join(tmpdir, basefilename)
-
-	if err := mindl.Download(ctx, templatedURL, outfile); err != nil {
-		return err
+	// TODO not everything is executable
+	if err := mindl.MakeExecutable(*fOut); err != nil {
+		return fmt.Errorf("error marking %q as executable: %w", *fOut, err)
 	}
 
-	if err := mindl.Unarchive(outfile, templatedExe, templatedOut); err != nil {
-		return err
-	}
-
-	if err := mindl.MakeExecutable(templatedOut); err != nil {
-		return err
-	}
-
-	newHashOnDisk, err := sum.Fnv128aPath(templatedOut)
-	if err != nil {
-		return err
-	}
-
-	db.Set(sumKey, newHashOnDisk, "fnv128a")
+	db.Set(*fURL, *fInArchive, mindlOS, mindlArch, hash, "fnv128a")
 	return db.Save()
 }

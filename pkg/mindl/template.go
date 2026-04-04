@@ -3,7 +3,6 @@ package mindl
 import (
 	"bytes"
 	"fmt"
-	"runtime"
 	"strings"
 	"text/template"
 )
@@ -23,11 +22,11 @@ type TemplateData struct {
 	Exe string `json:"exe"`
 }
 
-// NewTemplateData returns TemplateData populated with runtime info.
-func NewTemplateData() *TemplateData {
+// NewTemplateData returns a prepared TemplateData.
+func NewTemplateData(os, arch string) *TemplateData {
 	td := new(TemplateData)
-	td.OS = runtime.GOOS
-	td.Arch = runtime.GOARCH
+	td.OS = os
+	td.Arch = arch
 
 	td.OSArchive = "tar.gz"
 	if td.OS == "windows" {
