@@ -3,6 +3,7 @@ package mindl
 import (
 	"archive/tar"
 	"archive/zip"
+	"compress/bzip2"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -57,6 +58,8 @@ func Untar(archive, target, output string) error {
 			return fmt.Errorf("error adding gzip reader: %w", err)
 		}
 		f = gzreader
+	case strings.HasSuffix(archive, ".bz"):
+		f = bzip2.NewReader(raw)
 	}
 
 	reader := tar.NewReader(f)
