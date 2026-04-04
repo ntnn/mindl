@@ -11,3 +11,10 @@ func ShouldUpdate() bool {
 	_, err := strconv.ParseBool(os.Getenv("MINDL_UPDATE"))
 	return err == nil
 }
+
+func getenv(name, def string) string {
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return def
+}

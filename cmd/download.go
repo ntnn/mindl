@@ -25,7 +25,7 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	td := mindl.NewTemplateData()
+	td := mindl.NewTemplateData("", "")
 	td.Version = *fVersion
 	templatedURL, err := mindl.Template(*fURL, td)
 	if err != nil {

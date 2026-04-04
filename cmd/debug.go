@@ -28,7 +28,7 @@ func Debug(ctx context.Context, args []string) error {
 
 // DebugTemplateData writes template data as JSON to out.
 func DebugTemplateData(_ context.Context, out io.Writer) error {
-	td := mindl.NewTemplateData()
+	td := mindl.NewTemplateData("", "")
 
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
@@ -37,7 +37,7 @@ func DebugTemplateData(_ context.Context, out io.Writer) error {
 
 // DebugTemplate renders text as a template and writes the result to out.
 func DebugTemplate(_ context.Context, out io.Writer, text string) error {
-	td := mindl.NewTemplateData()
+	td := mindl.NewTemplateData("", "")
 	td.Version = "<VERSION>"
 	result, err := mindl.Template(text, td)
 	if err != nil {

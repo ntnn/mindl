@@ -23,11 +23,19 @@ type TemplateData struct {
 	Exe string `json:"exe"`
 }
 
-// NewTemplateData returns TemplateData populated with runtime info.
-func NewTemplateData() *TemplateData {
+// NewTemplateData returns a prepared TemplateData.
+// os defaults to MINDL_OS and then runtime.GOOS.
+// arch defaults to MINDL_ARCH and then runtime.GOARCH.
+func NewTemplateData(os, arch string) *TemplateData {
 	td := new(TemplateData)
-	td.OS = runtime.GOOS
-	td.Arch = runtime.GOARCH
+	td.OS = os
+	if td.OS == "" {
+		td.OS = getenv("MINDL_OD", runtime.GOOS)
+	}
+	td.Arch = arch
+	if td.Arch == "" {
+		td.Arch = getenv("MINDL_ARCH", runtime.GOARCH)
+	}
 
 	td.OSArchive = "tar.gz"
 	if td.OS == "windows" {
