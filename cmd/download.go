@@ -4,9 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/url"
-	"os"
-	"path/filepath"
 
 	"github.com/ntnn/mindl/pkg/mindl"
 	"github.com/ntnn/mindl/pkg/sum"
@@ -30,20 +27,6 @@ func Download(ctx context.Context, args []string) error {
 
 	td := mindl.NewTemplateData(mindlOS, mindlArch)
 	td.Version = *fVersion
-	templatedURL, err := mindl.Template(*fURL, td)
-	if err != nil {
-		return err
-	}
-
-	templatedExe, err := mindl.Template(*fExtract, td)
-	if err != nil {
-		return err
-	}
-
-	templatedOut, err := mindl.Template(*fOut, td)
-	if err != nil {
-		return err
-	}
 
 	db, err := sum.Open("mindl.sum")
 	if err != nil {
@@ -55,7 +38,7 @@ func Download(ctx context.Context, args []string) error {
 		return fmt.Errorf("could not update, required hash not found in mindl.sum")
 	}
 
-	matches, err := sum.PathMatchesHash(templatedOut, sum.Fnv128aPath, urlEntry.Sum)
+	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
 	if err != nil {
 		return err
 	}
@@ -63,33 +46,31 @@ func Download(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	u, err := url.Parse(templatedURL)
+	tool := mindl.Tool{
+		URLTemplate: *fURL,
+		InArchive:   *fExtract,
+		ExtractTo:   *fOut,
+	}
+
+	th, err := mindl.Handle(tool, td)
 	if err != nil {
 		return err
 	}
 
-	basefilename := filepath.Base(u.Path)
-
-	tmpdir := os.TempDir()
-	outfile := filepath.Join(tmpdir, basefilename)
-
-	if err := mindl.Download(ctx, templatedURL, outfile); err != nil {
+	if err := th.Download(ctx); err != nil {
 		return err
 	}
 
-	if err := mindl.Unarchive(outfile, templatedExe, templatedOut); err != nil {
-		return err
-	}
-
-	if err := mindl.MakeExecutable(templatedOut); err != nil {
-		return err
-	}
-
-	newHashOnDisk, err := sum.Fnv128aPath(templatedOut)
+	hash, err := th.Hash(sum.Fnv128aPath)
 	if err != nil {
 		return err
 	}
 
-	db.Set(*fURL, mindlOS, mindlArch, newHashOnDisk, "fnv128a")
+	// TODO not everything is executable
+	if err := mindl.MakeExecutable(*fOut); err != nil {
+		return fmt.Errorf("error marking %q as executable: %w", *fOut, err)
+	}
+
+	db.Set(*fURL, mindlOS, mindlArch, hash, "fnv128a")
 	return db.Save()
 }
