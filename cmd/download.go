@@ -44,20 +44,13 @@ func Download(ctx context.Context, args []string) error {
 
 	sumKey := fmt.Sprintf("%s#%s", templatedURL, templatedExe)
 
-	_, err = os.Stat(*fOut)
-	if err != nil && !os.IsNotExist(err) {
+	urlEntry, _ := db.Get(sumKey)
+	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
+	if err != nil {
 		return err
 	}
-	if !os.IsNotExist(err) {
-		hashOnDisk, err := sum.Fnv128aPath(*fOut)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-
-		urlEntry, _ := db.Get(sumKey)
-		if hashOnDisk == urlEntry.Sum {
-			return nil
-		}
+	if matches {
+		return nil
 	}
 
 	u, err := url.Parse(templatedURL)

@@ -1,7 +1,6 @@
 package sum
 
 import (
-	"encoding/base64"
 	"hash/fnv"
 	"io"
 	"os"
@@ -22,9 +21,4 @@ func Fnv128aPath(p string) (string, error) {
 	}
 
 	return Base64(hasher.Sum(nil)), nil
-}
-
-// Base64 encodes in as a base64 string.
-func Base64(in []byte) string {
-	return base64.StdEncoding.EncodeToString(in)
 }
