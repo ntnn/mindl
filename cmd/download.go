@@ -67,7 +67,7 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err := os.Chmod(*fOut, 0x770); err != nil { //nolint:gocritic // This is to mark the file executable, it has to be >0660
+	if err := mindl.MakeExecutable(*fOut); err != nil {
 		return err
 	}
 
