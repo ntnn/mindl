@@ -1,13 +1,30 @@
 GO ?= go
+WHAT ?= ./...
+
+TOOLS_DIR = hack/tools
+
+GOLANGCI_LINT_VER := 2.10.0
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 
 check: lint test
 
-WHAT ?= ./...
-
 .PHONY: lint
-lint:
-	$(GO) vet $(WHAT)
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run $(GOLANGCI_LINT_FLAGS) $(WHAT)
+
+.PHONY: lint-fix
+lint-fix: override GOLANGCI_LINT_FLAGS := $(GOLANGCI_LINT_FLAGS) --fix
+lint-fix: lint
 
 .PHONY: test
 test:
 	$(GO) test -race -v $(WHAT)
+
+$(GOLANGCI_LINT):
+	mkdir -p $(TOOLS_DIR)
+	$(GO) run . download \
+		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz' \
+		-version $(GOLANGCI_LINT_VER) \
+		-executable $(GOLANGCI_LINT_BIN) \
+		-out $@
