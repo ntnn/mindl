@@ -76,8 +76,10 @@ func Read(in io.Reader) (*DB, error) {
 	return db, nil
 }
 
+const sumDbPerms = 0o600
+
 func Open(p string) (*DB, error) {
-	f, err := os.OpenFile(p, os.O_CREATE, 0644)
+	f, err := os.OpenFile(p, os.O_CREATE, sumDbPerms)
 	if err != nil {
 		return nil, err
 	}
