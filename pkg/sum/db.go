@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 )
 
 // DB is a key-value store for checksum entries.
@@ -29,27 +31,13 @@ func (e Entry) Equal(other Entry) bool {
 	return e.Key == other.Key && e.Sum == other.Sum && e.Comment == other.Comment
 }
 
-func (db *DB) set(key, sum, comment string) bool {
-	entered := Entry{
+// Set stores an entry.
+func (db *DB) Set(key, sum, comment string) {
+	db.entries[key] = Entry{
 		Key:     key,
 		Sum:     sum,
 		Comment: comment,
 	}
-
-	existing, ok := db.entries[key]
-	if !ok || !existing.Equal(entered) {
-		db.entries[key] = entered
-		return true
-	}
-	return false
-}
-
-// Set stores an entry and persists the DB.
-func (db *DB) Set(key, sum, comment string) error {
-	if !db.set(key, sum, comment) {
-		return nil
-	}
-	return db.Save()
 }
 
 // Get retrieves an entry by key.
@@ -76,7 +64,7 @@ func Read(in io.Reader) (*DB, error) {
 		if len(record) != entryLength {
 			return nil, fmt.Errorf("record is not three columns wide: %q", record)
 		}
-		db.set(record[0], record[1], record[2])
+		db.Set(record[0], record[1], record[2])
 	}
 
 	return db, nil
@@ -115,11 +103,16 @@ func (db *DB) Save() error {
 func (db *DB) Write(out io.Writer) error {
 	writer := csv.NewWriter(out)
 
-	for _, entry := range db.entries {
+	keys := slices.Collect(maps.Keys(db.entries))
+	slices.Sort(keys)
+
+	for _, key := range keys {
+		entry := db.entries[key]
 		if err := writer.Write([]string{entry.Key, entry.Sum, entry.Comment}); err != nil {
 			return err
 		}
 	}
+
 	writer.Flush()
 	return writer.Error()
 }

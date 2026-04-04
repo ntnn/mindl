@@ -80,9 +80,6 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err := db.Set(sumKey, newHashOnDisk, "fnv128a"); err != nil {
-		return err
-	}
-
-	return nil
+	db.Set(sumKey, newHashOnDisk, "fnv128a")
+	return db.Save()
 }
