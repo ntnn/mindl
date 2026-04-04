@@ -13,6 +13,11 @@ type TemplateData struct {
 	Version string `json:"version"`
 	OS      string `json:"os"`
 	Arch    string `json:"arch"`
+
+	// OSArchive contains an os-dependent archive extension.
+	// Default is `tar.gz`.
+	// On windows it is `zip`.
+	OSArchive string `json:"osarchive"`
 }
 
 // NewTemplateData returns TemplateData populated with runtime info.
@@ -20,6 +25,12 @@ func NewTemplateData() *TemplateData {
 	td := new(TemplateData)
 	td.OS = runtime.GOOS
 	td.Arch = runtime.GOARCH
+
+	td.OSArchive = "tar.gz"
+	if td.OS == "windows" {
+		td.OSArchive = "zip"
+	}
+
 	return td
 }
 

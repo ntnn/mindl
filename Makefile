@@ -24,7 +24,7 @@ test:
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
 	$(GO) run . download \
-		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz' \
+		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.{{.OSArchive}}' \
 		-version $(GOLANGCI_LINT_VER) \
 		-extract golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}/$(GOLANGCI_LINT_BIN) \
 		-out $@
