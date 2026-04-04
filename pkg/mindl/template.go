@@ -18,6 +18,9 @@ type TemplateData struct {
 	// Default is `tar.gz`.
 	// On windows it is `zip`.
 	OSArchive string `json:"osarchive"`
+
+	// Exe contains `.exe` on windows.
+	Exe string `json:"exe"`
 }
 
 // NewTemplateData returns TemplateData populated with runtime info.
@@ -29,6 +32,7 @@ func NewTemplateData() *TemplateData {
 	td.OSArchive = "tar.gz"
 	if td.OS == "windows" {
 		td.OSArchive = "zip"
+		td.Exe = ".exe"
 	}
 
 	return td

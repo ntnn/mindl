@@ -37,6 +37,11 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
+	templatedOut, err := mindl.Template(*fOut, td)
+	if err != nil {
+		return err
+	}
+
 	db, err := sum.Open("mindl.sum")
 	if err != nil {
 		return err
@@ -49,7 +54,7 @@ func Download(ctx context.Context, args []string) error {
 		return fmt.Errorf("mindl should not update, but the required hash is not in the sumdb: %q", sumKey)
 	}
 
-	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
+	matches, err := sum.PathMatchesHash(templatedOut, sum.Fnv128aPath, urlEntry.Sum)
 	if err != nil {
 		return err
 	}
@@ -71,15 +76,15 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err := mindl.Unarchive(outfile, templatedExe, *fOut); err != nil {
+	if err := mindl.Unarchive(outfile, templatedExe, templatedOut); err != nil {
 		return err
 	}
 
-	if err := mindl.MakeExecutable(*fOut); err != nil {
+	if err := mindl.MakeExecutable(templatedOut); err != nil {
 		return err
 	}
 
-	newHashOnDisk, err := sum.Fnv128aPath(*fOut)
+	newHashOnDisk, err := sum.Fnv128aPath(templatedOut)
 	if err != nil {
 		return err
 	}
