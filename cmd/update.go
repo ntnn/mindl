@@ -8,6 +8,7 @@ import (
 	"github.com/ntnn/mindl/pkg/sum"
 )
 
+// Update updates hashes in the sumdb.
 func Update(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL Template")
@@ -45,11 +46,11 @@ func Update(ctx context.Context, args []string) error {
 }
 
 var commonCombs = [][]string{
-	[]string{"linux", "amd64"},
-	[]string{"linux", "arm64"},
-	[]string{"darwin", "amd64"},
-	[]string{"darwin", "arm64"},
-	[]string{"windows", "amd64"},
+	{"linux", "amd64"},
+	{"linux", "arm64"},
+	{"darwin", "amd64"},
+	{"darwin", "arm64"},
+	{"windows", "amd64"},
 }
 
 func update(ctx context.Context, db *sum.DB, entry sum.Entry, version string) error {
@@ -65,6 +66,7 @@ func update(ctx context.Context, db *sum.DB, entry sum.Entry, version string) er
 	if err != nil {
 		return err
 	}
+	defer th.Cleanup()
 
 	if err := th.Download(ctx); err != nil {
 		return err

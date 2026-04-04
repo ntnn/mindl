@@ -10,12 +10,14 @@ import (
 	"github.com/ntnn/mindl/pkg/sum"
 )
 
+// Tool is the definition of a tool to download.
 type Tool struct {
 	URLTemplate string
 	InArchive   string
 	ExtractTo   string
 }
 
+// ToolHandler is the handler for a tool download.
 type ToolHandler struct {
 	tool      Tool
 	url       string
@@ -24,6 +26,7 @@ type ToolHandler struct {
 	extractTo string
 }
 
+// Handle sets up a [ToolHandler].
 func Handle(tool Tool, td *TemplateData) (*ToolHandler, error) {
 	th := &ToolHandler{tool: tool}
 
@@ -41,6 +44,7 @@ func Handle(tool Tool, td *TemplateData) (*ToolHandler, error) {
 	return th, nil
 }
 
+// Download downloads and extracts a tool.
 func (th *ToolHandler) Download(ctx context.Context) error {
 	th.tmpdir = os.TempDir()
 	th.extractTo = th.tool.ExtractTo
@@ -69,13 +73,14 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 	return nil
 }
 
+// Hash runs the given hash func on the tool and returns the result.
 func (th *ToolHandler) Hash(hasher sum.HashPathFunc) (string, error) {
 	return hasher(th.extractTo)
 }
 
-func (th *ToolHandler) Cleanup() error {
-	if th.tmpdir == "" {
-		return nil
+// Cleanup deletes the temporary files leftover by the download and extraction.
+func (th *ToolHandler) Cleanup() {
+	if th.tmpdir != "" {
+		_ = os.RemoveAll(th.tmpdir)
 	}
-	return os.RemoveAll(th.tmpdir)
 }

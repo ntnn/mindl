@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 
@@ -35,7 +36,7 @@ func Download(ctx context.Context, args []string) error {
 
 	urlEntry, ok := db.Get(*fURL, *fInArchive, mindlOS, mindlArch)
 	if !ok && !mindl.ShouldUpdate() {
-		return fmt.Errorf("could not update, required hash not found in mindl.sum")
+		return errors.New("could not update, required hash not found in mindl.sum")
 	}
 
 	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
@@ -56,6 +57,7 @@ func Download(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	defer th.Cleanup()
 
 	if err := th.Download(ctx); err != nil {
 		return err

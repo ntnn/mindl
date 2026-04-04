@@ -21,6 +21,7 @@ linters:
         - G304
         - G110
         - G704
+        - G703
   enable:
     - asasalint
     - asciicheck

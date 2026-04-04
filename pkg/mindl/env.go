@@ -20,10 +20,12 @@ func getenv(name, def string) string {
 	return def
 }
 
+// OS returns the value of MINDL_OS or runtime.GOOS.
 func OS() string {
-	return getenv("MINDL_OD", runtime.GOOS)
+	return getenv("MINDL_OS", runtime.GOOS)
 }
 
+// Arch returns the value of MINDL_ARCH or runtime.GOARCH.
 func Arch() string {
 	return getenv("MINDL_ARCH", runtime.GOARCH)
 }
