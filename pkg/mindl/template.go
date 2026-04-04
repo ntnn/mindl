@@ -21,13 +21,15 @@ func NewTemplateData() *TemplateData {
 	return td
 }
 
+const asciiUpperCaseOffset = 32
+
 // Title is a simplistic implementation of the deprecated strings.Title.
 // It does not handle unicode.
 func Title(in string) string {
 	split := strings.Split(in, " ")
 	for i := range split {
 		if split[i][0] >= 'a' || split[i][0] <= 'z' {
-			split[i] = string(split[i][0]-32) + split[i][1:]
+			split[i] = string(split[i][0]-asciiUpperCaseOffset) + split[i][1:]
 		}
 	}
 	return strings.Join(split, " ")
