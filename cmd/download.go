@@ -19,8 +19,8 @@ func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL Template")
 	fVersion := fs.String("version", "", "Version to download")
-	fExecutable := fs.String("executable", "", "Executable to extract from archive")
-	fOut := fs.String("out", "", "Where to extract the executable to")
+	fExtract := fs.String("extract", "", "File to extract from archive")
+	fOut := fs.String("out", "", "Where to place the extracted file")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	templatedExe, err := mindl.Template(*fExecutable, td)
+	templatedExe, err := mindl.Template(*fExtract, td)
 	if err != nil {
 		return err
 	}
