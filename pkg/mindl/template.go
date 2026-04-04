@@ -3,7 +3,6 @@ package mindl
 import (
 	"bytes"
 	"fmt"
-	"runtime"
 	"strings"
 	"text/template"
 )
@@ -24,18 +23,10 @@ type TemplateData struct {
 }
 
 // NewTemplateData returns a prepared TemplateData.
-// os defaults to MINDL_OS and then runtime.GOOS.
-// arch defaults to MINDL_ARCH and then runtime.GOARCH.
 func NewTemplateData(os, arch string) *TemplateData {
 	td := new(TemplateData)
 	td.OS = os
-	if td.OS == "" {
-		td.OS = getenv("MINDL_OD", runtime.GOOS)
-	}
 	td.Arch = arch
-	if td.Arch == "" {
-		td.Arch = getenv("MINDL_ARCH", runtime.GOARCH)
-	}
 
 	td.OSArchive = "tar.gz"
 	if td.OS == "windows" {

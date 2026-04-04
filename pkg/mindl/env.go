@@ -2,6 +2,7 @@ package mindl
 
 import (
 	"os"
+	"runtime"
 	"strconv"
 )
 
@@ -17,4 +18,12 @@ func getenv(name, def string) string {
 		return v
 	}
 	return def
+}
+
+func OS() string {
+	return getenv("MINDL_OD", runtime.GOOS)
+}
+
+func Arch() string {
+	return getenv("MINDL_ARCH", runtime.GOARCH)
 }

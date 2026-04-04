@@ -25,7 +25,10 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	td := mindl.NewTemplateData("", "")
+	mindlOS := mindl.OS()
+	mindlArch := mindl.Arch()
+
+	td := mindl.NewTemplateData(mindlOS, mindlArch)
 	td.Version = *fVersion
 	templatedURL, err := mindl.Template(*fURL, td)
 	if err != nil {
@@ -47,11 +50,9 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	sumKey := fmt.Sprintf("%s#%s", templatedURL, templatedExe)
-
-	urlEntry, ok := db.Get(sumKey)
+	urlEntry, ok := db.Get(*fURL, mindlOS, mindlArch)
 	if !ok && !mindl.ShouldUpdate() {
-		return fmt.Errorf("mindl should not update, but the required hash is not in the sumdb: %q", sumKey)
+		return fmt.Errorf("could not update, required hash not found in mindl.sum")
 	}
 
 	matches, err := sum.PathMatchesHash(templatedOut, sum.Fnv128aPath, urlEntry.Sum)
@@ -89,6 +90,6 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	db.Set(sumKey, newHashOnDisk, "fnv128a")
+	db.Set(*fURL, mindlOS, mindlArch, newHashOnDisk, "fnv128a")
 	return db.Save()
 }
