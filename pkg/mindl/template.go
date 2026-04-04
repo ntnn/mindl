@@ -8,12 +8,14 @@ import (
 	"text/template"
 )
 
+// TemplateData holds template rendering context.
 type TemplateData struct {
 	Version string `json:"version"`
 	OS      string `json:"os"`
 	Arch    string `json:"arch"`
 }
 
+// NewTemplateData returns TemplateData populated with runtime info.
 func NewTemplateData() *TemplateData {
 	td := new(TemplateData)
 	td.OS = runtime.GOOS
@@ -35,10 +37,12 @@ func Title(in string) string {
 	return strings.Join(split, " ")
 }
 
+// FuncMap contains template functions used by [Template].
 var FuncMap = map[string]any{
 	"title": Title,
 }
 
+// Template parses and executes the given text as a template with the given data.
 func Template(text string, data *TemplateData) (string, error) {
 	t := template.New("").Funcs(FuncMap)
 

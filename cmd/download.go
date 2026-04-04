@@ -11,9 +11,12 @@ import (
 	"github.com/ntnn/mindl/pkg/sum"
 )
 
+// Download fetches and extracts an executable from a URL.
+//
+//nolint:cyclop // sequential steps, not real complexity and will be refactored
 func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
-	fUrl := fs.String("url", "", "URL Template")
+	fURL := fs.String("url", "", "URL Template")
 	fVersion := fs.String("version", "", "Version to download")
 	fExecutable := fs.String("executable", "", "Executable to extract from archive")
 	fOut := fs.String("out", "", "Where to extract the executable to")
@@ -23,7 +26,7 @@ func Download(ctx context.Context, args []string) error {
 
 	td := mindl.NewTemplateData()
 	td.Version = *fVersion
-	result, err := mindl.Template(*fUrl, td)
+	result, err := mindl.Template(*fURL, td)
 	if err != nil {
 		return err
 	}

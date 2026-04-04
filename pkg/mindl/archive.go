@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// Unarchive extracts target from archive to output.
+// For paths ending in .zip [Unzip] is used.
+// Otherwise [Untar] is used.
 func Unarchive(archive, target, output string) error {
 	if strings.HasSuffix(archive, ".zip") {
 		return Unzip(archive, target, output)
@@ -19,6 +22,7 @@ func Unarchive(archive, target, output string) error {
 	return Untar(archive, target, output)
 }
 
+// Unzip extracts target from a zip archive to output.
 func Unzip(archive, target, output string) error {
 	reader, err := zip.OpenReader(archive)
 	if err != nil {
@@ -41,6 +45,9 @@ func Unzip(archive, target, output string) error {
 	return err
 }
 
+// Untar extracts target from a tar archive to output.
+//
+//nolint:cyclop // not that complex, mostly compression + for loop
 func Untar(archive, target, output string) error {
 	raw, err := os.Open(archive)
 	if err != nil {

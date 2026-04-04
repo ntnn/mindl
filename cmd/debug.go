@@ -11,6 +11,7 @@ import (
 	"github.com/ntnn/mindl/pkg/mindl"
 )
 
+// Debug dispatches debug subcommands.
 func Debug(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return ErrNoArgs
@@ -25,7 +26,8 @@ func Debug(ctx context.Context, args []string) error {
 	}
 }
 
-func DebugTemplateData(ctx context.Context, out io.Writer) error {
+// DebugTemplateData writes template data as JSON to out.
+func DebugTemplateData(_ context.Context, out io.Writer) error {
 	td := mindl.NewTemplateData()
 
 	encoder := json.NewEncoder(out)
@@ -33,7 +35,8 @@ func DebugTemplateData(ctx context.Context, out io.Writer) error {
 	return encoder.Encode(td)
 }
 
-func DebugTemplate(ctx context.Context, out io.Writer, text string) error {
+// DebugTemplate renders text as a template and writes the result to out.
+func DebugTemplate(_ context.Context, out io.Writer, text string) error {
 	td := mindl.NewTemplateData()
 	td.Version = "<VERSION>"
 	result, err := mindl.Template(text, td)

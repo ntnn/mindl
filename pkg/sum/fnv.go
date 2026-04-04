@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// Fnv128aPath returns the base64-encoded FNV-128a hash of the file at p.
 func Fnv128aPath(p string) (string, error) {
 	f, err := os.Open(p)
 	if err != nil {
@@ -23,6 +24,7 @@ func Fnv128aPath(p string) (string, error) {
 	return Base64(hasher.Sum(nil)), nil
 }
 
+// Base64 encodes in as a base64 string.
 func Base64(in []byte) string {
 	return base64.StdEncoding.EncodeToString(in)
 }

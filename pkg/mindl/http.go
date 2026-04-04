@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// Get creates a context-aware request and submits it using the http.DefaultClient.
+// Get makes a context-aware request to the given URL and returns the response.
 func Get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

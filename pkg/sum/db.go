@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// DB is a key-value store for checksum entries.
 type DB struct {
 	path    string
 	entries map[string]Entry
@@ -16,12 +17,14 @@ type DB struct {
 // entryLength is used when reading records to validate the number of fields.
 const entryLength = 3
 
+// Entry represents a single checksum record.
 type Entry struct {
 	Key     string
 	Sum     string
 	Comment string
 }
 
+// Equal returns true if the entry and other are identical.
 func (e Entry) Equal(other Entry) bool {
 	return e.Key == other.Key && e.Sum == other.Sum && e.Comment == other.Comment
 }
@@ -41,6 +44,7 @@ func (db *DB) set(key, sum, comment string) bool {
 	return false
 }
 
+// Set stores an entry and persists the DB.
 func (db *DB) Set(key, sum, comment string) error {
 	if !db.set(key, sum, comment) {
 		return nil
@@ -48,11 +52,13 @@ func (db *DB) Set(key, sum, comment string) error {
 	return db.Save()
 }
 
+// Get retrieves an entry by key.
 func (db *DB) Get(key string) (Entry, bool) {
 	val, ok := db.entries[key]
 	return val, ok
 }
 
+// Read parses a DB from in.
 func Read(in io.Reader) (*DB, error) {
 	db := &DB{
 		entries: map[string]Entry{},
@@ -78,6 +84,8 @@ func Read(in io.Reader) (*DB, error) {
 
 const sumDbPerms = 0o600
 
+// Open opens a DB at path p.
+// If the path does not exist an empty DB will be returned.
 func Open(p string) (*DB, error) {
 	f, err := os.OpenFile(p, os.O_CREATE, sumDbPerms)
 	if err != nil {
@@ -93,6 +101,7 @@ func Open(p string) (*DB, error) {
 	return db, nil
 }
 
+// Save writes the DB to its file path.
 func (db *DB) Save() error {
 	f, err := os.Create(db.path)
 	if err != nil {
@@ -102,6 +111,7 @@ func (db *DB) Save() error {
 	return db.Write(f)
 }
 
+// Write writes the DB to the given writer.
 func (db *DB) Write(out io.Writer) error {
 	writer := csv.NewWriter(out)
 
