@@ -13,6 +13,9 @@ type DB struct {
 	entries map[string]Entry
 }
 
+// entryLength is used when reading records to validate the number of fields.
+const entryLength = 3
+
 type Entry struct {
 	Key     string
 	Sum     string
@@ -64,7 +67,7 @@ func Read(in io.Reader) (*DB, error) {
 			}
 			return nil, err
 		}
-		if len(record) != 3 {
+		if len(record) != entryLength {
 			return nil, fmt.Errorf("record is not three columns wide: %q", record)
 		}
 		db.set(record[0], record[1], record[2])
