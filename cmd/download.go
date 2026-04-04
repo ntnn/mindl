@@ -44,7 +44,11 @@ func Download(ctx context.Context, args []string) error {
 
 	sumKey := fmt.Sprintf("%s#%s", templatedURL, templatedExe)
 
-	urlEntry, _ := db.Get(sumKey)
+	urlEntry, ok := db.Get(sumKey)
+	if !ok && !mindl.ShouldUpdate() {
+		return fmt.Errorf("mindl should not update, but the required hash is not in the sumdb: %q", sumKey)
+	}
+
 	matches, err := sum.PathMatchesHash(*fOut, sum.Fnv128aPath, urlEntry.Sum)
 	if err != nil {
 		return err
