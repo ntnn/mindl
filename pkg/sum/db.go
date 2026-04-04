@@ -17,11 +17,12 @@ type DB struct {
 }
 
 // entryLength is used when reading records to validate the number of fields.
-const entryLength = 5
+const entryLength = 6
 
 // Entry represents a single checksum record.
 type Entry struct {
 	URLTemplate string
+	InArchive   string
 	OS          string
 	Arch        string
 	Sum         string
@@ -31,6 +32,7 @@ type Entry struct {
 // Equal returns true if the entry and other are identical.
 func (e Entry) Equal(other Entry) bool {
 	return e.URLTemplate == other.URLTemplate &&
+		e.InArchive == other.InArchive &&
 		e.OS == other.OS &&
 		e.Arch == other.Arch &&
 		e.Sum == other.Sum &&
@@ -38,12 +40,13 @@ func (e Entry) Equal(other Entry) bool {
 }
 
 func (e Entry) key() string {
-	return fmt.Sprintf("%s#%s#%s", e.URLTemplate, e.OS, e.Arch)
+	return fmt.Sprintf("%s#%s#%s#%s", e.URLTemplate, e.InArchive, e.OS, e.Arch)
 }
 
 func (e Entry) records() []string {
 	return []string{
 		e.URLTemplate,
+		e.InArchive,
 		e.OS,
 		e.Arch,
 		e.Sum,
@@ -52,9 +55,10 @@ func (e Entry) records() []string {
 }
 
 // Set stores an entry.
-func (db *DB) Set(urlTemplate, os, arch, sum, comment string) {
+func (db *DB) Set(urlTemplate, inArchive, os, arch, sum, comment string) {
 	e := Entry{
 		URLTemplate: urlTemplate,
+		InArchive:   inArchive,
 		OS:          os,
 		Arch:        arch,
 		Sum:         sum,
@@ -65,9 +69,10 @@ func (db *DB) Set(urlTemplate, os, arch, sum, comment string) {
 }
 
 // Get retrieves an entry by key.
-func (db *DB) Get(urlTemplate, os, arch string) (Entry, bool) {
+func (db *DB) Get(urlTemplate, inArchive, os, arch string) (Entry, bool) {
 	key := Entry{
 		URLTemplate: urlTemplate,
+		InArchive:   inArchive,
 		OS:          os,
 		Arch:        arch,
 	}.key()
@@ -77,10 +82,13 @@ func (db *DB) Get(urlTemplate, os, arch string) (Entry, bool) {
 }
 
 // GetAll retrieves all entries for the given URL template.
-func (db *DB) GetAll(urlTemplate string) []Entry {
+func (db *DB) GetAll(urlTemplate, inArchive string) []Entry {
 	es := []Entry{}
 	for _, entry := range db.entries {
 		if entry.URLTemplate != urlTemplate {
+			continue
+		}
+		if entry.InArchive != inArchive {
 			continue
 		}
 		es = append(es, entry)
@@ -106,7 +114,7 @@ func Read(in io.Reader) (*DB, error) {
 		if len(record) != entryLength {
 			return nil, fmt.Errorf("record is not three columns wide: %q", record)
 		}
-		db.Set(record[0], record[1], record[2], record[3], record[4])
+		db.Set(record[0], record[1], record[2], record[3], record[4], record[5])
 	}
 
 	return db, nil

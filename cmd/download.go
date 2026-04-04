@@ -15,8 +15,8 @@ import (
 func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL Template")
+	fInArchive := fs.String("inarchive", "", "File to extract from archive")
 	fVersion := fs.String("version", "", "Version to download")
-	fExtract := fs.String("extract", "", "File to extract from archive")
 	fOut := fs.String("out", "", "Where to place the extracted file")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -33,7 +33,7 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	urlEntry, ok := db.Get(*fURL, mindlOS, mindlArch)
+	urlEntry, ok := db.Get(*fURL, *fInArchive, mindlOS, mindlArch)
 	if !ok && !mindl.ShouldUpdate() {
 		return fmt.Errorf("could not update, required hash not found in mindl.sum")
 	}
@@ -48,7 +48,7 @@ func Download(ctx context.Context, args []string) error {
 
 	tool := mindl.Tool{
 		URLTemplate: *fURL,
-		InArchive:   *fExtract,
+		InArchive:   *fInArchive,
 		ExtractTo:   *fOut,
 	}
 
@@ -71,6 +71,6 @@ func Download(ctx context.Context, args []string) error {
 		return fmt.Errorf("error marking %q as executable: %w", *fOut, err)
 	}
 
-	db.Set(*fURL, mindlOS, mindlArch, hash, "fnv128a")
+	db.Set(*fURL, *fInArchive, mindlOS, mindlArch, hash, "fnv128a")
 	return db.Save()
 }
