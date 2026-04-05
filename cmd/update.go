@@ -54,25 +54,12 @@ var commonCombs = [][]string{
 }
 
 func update(ctx context.Context, db *sum.DB, entry sum.Entry, version string) error {
-	td := mindl.NewTemplateData(entry.OS, entry.Arch)
-	td.Version = version
-
 	tool := mindl.Tool{
 		URLTemplate: entry.URLTemplate,
 		InArchive:   entry.InArchive,
 	}
 
-	th, err := mindl.Handle(tool, td)
-	if err != nil {
-		return err
-	}
-	defer th.Cleanup()
-
-	if err := th.Download(ctx); err != nil {
-		return err
-	}
-
-	hash, err := th.Hash(sum.Fnv128aPath)
+	hash, err := mindl.DownloadAndHash(ctx, tool, entry.OS, entry.Arch, version)
 	if err != nil {
 		return err
 	}

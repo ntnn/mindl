@@ -84,3 +84,21 @@ func (th *ToolHandler) Cleanup() {
 		_ = os.RemoveAll(th.tmpdir)
 	}
 }
+
+// DownloadAndHash downloads the tool for the given OS/arch/version combination and returns the hash.
+func DownloadAndHash(ctx context.Context, tool Tool, os, arch, version string) (string, error) {
+	td := NewTemplateData(os, arch)
+	td.Version = version
+
+	th, err := Handle(tool, td)
+	if err != nil {
+		return "", err
+	}
+	defer th.Cleanup()
+
+	if err := th.Download(ctx); err != nil {
+		return "", err
+	}
+
+	return th.Hash(sum.Fnv128aPath)
+}

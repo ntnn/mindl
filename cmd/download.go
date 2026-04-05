@@ -11,8 +11,6 @@ import (
 )
 
 // Download fetches and extracts an executable from a URL.
-//
-//nolint:cyclop // sequential steps, not real complexity and will be refactored
 func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL Template")
@@ -25,9 +23,6 @@ func Download(ctx context.Context, args []string) error {
 
 	mindlOS := mindl.OS()
 	mindlArch := mindl.Arch()
-
-	td := mindl.NewTemplateData(mindlOS, mindlArch)
-	td.Version = *fVersion
 
 	db, err := sum.Open("mindl.sum")
 	if err != nil {
@@ -53,17 +48,7 @@ func Download(ctx context.Context, args []string) error {
 		ExtractTo:   *fOut,
 	}
 
-	th, err := mindl.Handle(tool, td)
-	if err != nil {
-		return err
-	}
-	defer th.Cleanup()
-
-	if err := th.Download(ctx); err != nil {
-		return err
-	}
-
-	hash, err := th.Hash(sum.Fnv128aPath)
+	hash, err := mindl.DownloadAndHash(ctx, tool, mindlOS, mindlArch, *fVersion)
 	if err != nil {
 		return err
 	}
