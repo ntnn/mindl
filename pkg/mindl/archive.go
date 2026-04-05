@@ -40,6 +40,7 @@ func Unzip(archive, target, output string) error {
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 
 	_, err = io.Copy(out, f)
 	return err
