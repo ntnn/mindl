@@ -24,7 +24,7 @@ func Download(ctx context.Context, args []string) error {
 	mindlOS := mindl.OS()
 	mindlArch := mindl.Arch()
 
-	db, err := sum.Open("mindl.sum")
+	db, err := sum.Open(sumDBPath)
 	if err != nil {
 		return err
 	}

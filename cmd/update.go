@@ -19,7 +19,7 @@ func Update(ctx context.Context, args []string) error {
 		return err
 	}
 
-	db, err := sum.Open("mindl.sum")
+	db, err := sum.Open(sumDBPath)
 	if err != nil {
 		return err
 	}
