@@ -85,9 +85,9 @@ func (th *ToolHandler) Cleanup() {
 	}
 }
 
-// DownloadAndHash downloads the tool for the given OS/arch/version combination and returns the hash.
-func DownloadAndHash(ctx context.Context, tool Tool, os, arch, version string) (string, error) {
-	td := NewTemplateData(os, arch)
+// DownloadAndHash downloads the tool for the given target/version combination.
+func DownloadAndHash(ctx context.Context, tool Tool, t Target, version string) (string, error) {
+	td := NewTemplateData(t.OS, t.Arch)
 	td.Version = version
 
 	th, err := Handle(tool, td)
