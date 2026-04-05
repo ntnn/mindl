@@ -10,6 +10,11 @@ import (
 	"github.com/ntnn/mindl/pkg/sum"
 )
 
+var (
+	hasher      = sum.Sha512Path
+	hasherDescr = "sha512"
+)
+
 // Download fetches and extracts an executable from a URL.
 //
 // When MINDL_UPDATE is set the hashes for all known OS/Arch
@@ -77,7 +82,7 @@ func downloadCurrent(
 	}
 
 	if entry.Sum != "" {
-		matches, err := sum.PathMatchesHash(out, sum.Fnv128aPath, entry.Sum)
+		matches, err := sum.PathMatchesHash(out, hasher, entry.Sum)
 		if err != nil {
 			return err
 		}
@@ -86,7 +91,7 @@ func downloadCurrent(
 		}
 	}
 
-	hash, err := mindl.DownloadAndHash(ctx, tool, current, version, out)
+	hash, err := downloadAndHash(ctx, tool, current, version, out, hasher)
 	if err != nil {
 		return err
 	}
@@ -96,7 +101,7 @@ func downloadCurrent(
 		return fmt.Errorf("error marking %q as executable: %w", out, err)
 	}
 
-	db.Set(tool.URLTemplate, tool.InArchive, current.OS, current.Arch, hash, "fnv128a")
+	db.Set(tool.URLTemplate, tool.InArchive, current.OS, current.Arch, hash, hasherDescr)
 	return nil
 }
 
@@ -109,11 +114,34 @@ func updateTargets(
 		if t == skip {
 			continue
 		}
-		h, err := mindl.DownloadAndHash(ctx, tool, t, version, "")
+		h, err := downloadAndHash(ctx, tool, t, version, "", hasher)
 		if err != nil {
 			return err
 		}
-		db.Set(tool.URLTemplate, tool.InArchive, t.OS, t.Arch, h, "fnv128a")
+		db.Set(tool.URLTemplate, tool.InArchive, t.OS, t.Arch, h, hasherDescr)
 	}
 	return nil
+}
+
+func downloadAndHash(
+	ctx context.Context,
+	tool mindl.Tool,
+	t mindl.Target,
+	version, extractTo string,
+	hasher sum.HashPathFunc,
+) (string, error) {
+	td := mindl.NewTemplateData(t.OS, t.Arch)
+	td.Version = version
+
+	th, err := mindl.Handle(tool, td)
+	if err != nil {
+		return "", fmt.Errorf("error creating tool handler for %q: %w", tool, err)
+	}
+	defer th.Cleanup()
+
+	if err := th.Download(ctx, extractTo); err != nil {
+		return "", fmt.Errorf("error downloading tool %q: %w", tool, err)
+	}
+
+	return th.Hash(hasher)
 }

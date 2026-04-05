@@ -85,22 +85,3 @@ func (th *ToolHandler) Cleanup() {
 		_ = os.RemoveAll(th.tmpdir)
 	}
 }
-
-// DownloadAndHash downloads the tool for the given target/version combination.
-// If extractTo is empty the file is extracted to a temporary directory.
-func DownloadAndHash(ctx context.Context, tool Tool, t Target, version, extractTo string) (string, error) {
-	td := NewTemplateData(t.OS, t.Arch)
-	td.Version = version
-
-	th, err := Handle(tool, td)
-	if err != nil {
-		return "", fmt.Errorf("error creating tool handler for %q: %w", tool, err)
-	}
-	defer th.Cleanup()
-
-	if err := th.Download(ctx, extractTo); err != nil {
-		return "", fmt.Errorf("error downloading tool %q: %w", tool, err)
-	}
-
-	return th.Hash(sum.Fnv128aPath)
-}
