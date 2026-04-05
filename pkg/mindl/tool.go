@@ -3,6 +3,7 @@ package mindl
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -45,16 +46,13 @@ func Handle(tool Tool, td *TemplateData) (*ToolHandler, error) {
 
 // Download downloads and extracts a tool.
 // If extractTo is empty the file is extracted to a temporary directory.
-func (th *ToolHandler) Download(ctx context.Context, extractTo string) error {
+func (th *ToolHandler) Download(ctx context.Context) error {
 	tmpdir, err := os.MkdirTemp(os.TempDir(), "mindl-")
 	if err != nil {
 		return fmt.Errorf("error creating temporary directory: %w", err)
 	}
 	th.tmpdir = tmpdir
-	th.extractTo = extractTo
-	if th.extractTo == "" {
-		th.extractTo = filepath.Join(th.tmpdir, "extracted")
-	}
+	th.extractTo = filepath.Join(th.tmpdir, "extracted")
 
 	u, err := url.Parse(th.url)
 	if err != nil {
@@ -77,6 +75,33 @@ func (th *ToolHandler) Download(ctx context.Context, extractTo string) error {
 // Hash runs the given hash func on the tool and returns the result.
 func (th *ToolHandler) Hash(hasher sum.HashPathFunc) (string, error) {
 	return hasher(th.extractTo)
+}
+
+// Move moves the extracted file to dst.
+// It attempts [os.Rename] first, falling back to a copy for
+// cross-filesystem moves.
+func (th *ToolHandler) Move(dst string) error {
+	if err := os.Rename(th.extractTo, dst); err == nil {
+		return nil
+	}
+
+	in, err := os.Open(th.extractTo)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+
+	return out.Close()
 }
 
 // Cleanup deletes the temporary files leftover by the download and extraction.

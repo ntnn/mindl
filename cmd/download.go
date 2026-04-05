@@ -44,18 +44,19 @@ func Download(ctx context.Context, args []string) error {
 	}
 	current := mindl.CurrentTarget()
 
-	if err := downloadCurrent(ctx, db, tool, current, *fVersion, *fOut); err != nil {
-		return err
-	}
-
 	if mindl.ShouldUpdate() {
 		targets := targetsFromEntries(db.GetAll(tool.URLTemplate, tool.InArchive))
 		if *fCommon {
 			targets = append(targets, mindl.CommonTargets...)
 		}
-		if err := updateTargets(ctx, db, tool, *fVersion, mindl.DeduplicateTargets(targets), current); err != nil {
+		if err := updateTargets(ctx, db, tool, *fVersion, mindl.DeduplicateTargets(targets)); err != nil {
 			return err
 		}
+	}
+
+	// TODO download re-download the same file
+	if err := downloadCurrent(ctx, db, tool, current, *fVersion, *fOut); err != nil {
+		return err
 	}
 
 	return db.Save()
@@ -75,13 +76,12 @@ func downloadCurrent(
 	current mindl.Target, version, out string,
 ) error {
 	entry, ok := db.Get(tool.URLTemplate, tool.InArchive, current.OS, current.Arch)
-	if !ok {
+	switch ok {
+	case false:
 		if !mindl.ShouldUpdate() {
 			return errors.New("required hash not found in mindl.sum")
 		}
-	}
-
-	if entry.Sum != "" {
+	case true:
 		matches, err := sum.PathMatchesHash(out, hasher, entry.Sum)
 		if err != nil {
 			return err
@@ -91,7 +91,7 @@ func downloadCurrent(
 		}
 	}
 
-	hash, err := downloadAndHash(ctx, tool, current, version, out, hasher)
+	hash, err := downloadAndHash(ctx, tool, current, version, out, entry.Sum, hasher)
 	if err != nil {
 		return err
 	}
@@ -105,16 +105,13 @@ func downloadCurrent(
 	return nil
 }
 
-// updateTargets downloads and hashes the tool for all targets except skip.
+// updateTargets downloads and hashes the tool for all targets.
 func updateTargets(
 	ctx context.Context, db *sum.DB, tool mindl.Tool,
-	version string, targets []mindl.Target, skip mindl.Target,
+	version string, targets []mindl.Target,
 ) error {
 	for _, t := range targets {
-		if t == skip {
-			continue
-		}
-		h, err := downloadAndHash(ctx, tool, t, version, "", hasher)
+		h, err := downloadAndHash(ctx, tool, t, version, "", "", hasher)
 		if err != nil {
 			return err
 		}
@@ -128,7 +125,7 @@ func downloadAndHash(
 	tool mindl.Tool,
 	t mindl.Target,
 	version, extractTo string,
-	hasher sum.HashPathFunc,
+	expectedHash string, hasher sum.HashPathFunc,
 ) (string, error) {
 	td := mindl.NewTemplateData(t.OS, t.Arch)
 	td.Version = version
@@ -139,9 +136,24 @@ func downloadAndHash(
 	}
 	defer th.Cleanup()
 
-	if err := th.Download(ctx, extractTo); err != nil {
+	if err := th.Download(ctx); err != nil {
 		return "", fmt.Errorf("error downloading tool %q: %w", tool, err)
 	}
 
-	return th.Hash(hasher)
+	hash, err := th.Hash(hasher)
+	if err != nil {
+		return "", fmt.Errorf("error hashing extracted file %q: %w", tool.InArchive, err)
+	}
+
+	if expectedHash != "" && hash != expectedHash {
+		return "", fmt.Errorf("hash %q does not match expected hash %q", hash, expectedHash)
+	}
+
+	if extractTo != "" {
+		if err := th.Move(extractTo); err != nil {
+			return "", fmt.Errorf("error moving extracted archive file %q to %q: %w", tool.InArchive, extractTo, err)
+		}
+	}
+
+	return hash, nil
 }
