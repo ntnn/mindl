@@ -76,12 +76,14 @@ func downloadCurrent(
 		}
 	}
 
-	matches, err := sum.PathMatchesHash(out, sum.Fnv128aPath, entry.Sum)
-	if err != nil {
-		return err
-	}
-	if matches {
-		return nil
+	if entry.Sum != "" {
+		matches, err := sum.PathMatchesHash(out, sum.Fnv128aPath, entry.Sum)
+		if err != nil {
+			return err
+		}
+		if matches {
+			return nil
+		}
 	}
 
 	hash, err := mindl.DownloadAndHash(ctx, tool, current, version, out)
