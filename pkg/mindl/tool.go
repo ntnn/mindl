@@ -3,6 +3,7 @@ package mindl
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 type Tool struct {
 	URLTemplate string
 	InArchive   string
-	ExtractTo   string
 }
 
 // ToolHandler is the handler for a tool download.
@@ -45,15 +45,14 @@ func Handle(tool Tool, td *TemplateData) (*ToolHandler, error) {
 }
 
 // Download downloads and extracts a tool.
+// If extractTo is empty the file is extracted to a temporary directory.
 func (th *ToolHandler) Download(ctx context.Context) error {
-	th.tmpdir = os.TempDir()
-	th.extractTo = th.tool.ExtractTo
-	if th.extractTo == "" {
-		// If .ExractTo is empty the hash for a different OS/Arch is
-		// being updated so extract to inside of the temporary
-		// directory.
-		th.extractTo = filepath.Join(th.tmpdir, "extracted")
+	tmpdir, err := os.MkdirTemp(os.TempDir(), "mindl-")
+	if err != nil {
+		return fmt.Errorf("error creating temporary directory: %w", err)
 	}
+	th.tmpdir = tmpdir
+	th.extractTo = filepath.Join(th.tmpdir, "extracted")
 
 	u, err := url.Parse(th.url)
 	if err != nil {
@@ -62,7 +61,7 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 
 	basefilename := filepath.Base(u.Path)
 	outfile := filepath.Join(th.tmpdir, basefilename)
-	if err := Download(ctx, th.url, outfile); err != nil {
+	if err := download(ctx, th.url, outfile); err != nil {
 		return fmt.Errorf("error downloading %q to %q: %w", th.url, outfile, err)
 	}
 
@@ -76,6 +75,33 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 // Hash runs the given hash func on the tool and returns the result.
 func (th *ToolHandler) Hash(hasher sum.HashPathFunc) (string, error) {
 	return hasher(th.extractTo)
+}
+
+// Move moves the extracted file to dst.
+// It attempts [os.Rename] first, falling back to a copy for
+// cross-filesystem moves.
+func (th *ToolHandler) Move(dst string) error {
+	if err := os.Rename(th.extractTo, dst); err == nil {
+		return nil
+	}
+
+	in, err := os.Open(th.extractTo)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
+
+	return out.Close()
 }
 
 // Cleanup deletes the temporary files leftover by the download and extraction.

@@ -112,7 +112,7 @@ func Read(in io.Reader) (*DB, error) {
 			return nil, err
 		}
 		if len(record) != entryLength {
-			return nil, fmt.Errorf("record is not three columns wide: %q", record)
+			return nil, fmt.Errorf("record is not %d columns wide: %q", entryLength, record)
 		}
 		db.Set(record[0], record[1], record[2], record[3], record[4], record[5])
 	}

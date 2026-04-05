@@ -44,7 +44,10 @@ const asciiUpperCaseOffset = 32
 func Title(in string) string {
 	split := strings.Split(in, " ")
 	for i := range split {
-		if split[i][0] >= 'a' || split[i][0] <= 'z' {
+		if len(split[i]) == 0 {
+			continue
+		}
+		if split[i][0] >= 'a' && split[i][0] <= 'z' {
 			split[i] = string(split[i][0]-asciiUpperCaseOffset) + split[i][1:]
 		}
 	}

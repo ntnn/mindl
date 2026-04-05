@@ -23,8 +23,7 @@ test:
 
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
-	$(GO) run . download \
+	$(GO) run . download -common -out $@ \
 		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.{{.OSArchive}}' \
-		-version $(GOLANGCI_LINT_VER) \
 		-inarchive golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}/$(GOLANGCI_LINT_BIN){{.Exe}} \
-		-out $@
+		-version $(GOLANGCI_LINT_VER)
