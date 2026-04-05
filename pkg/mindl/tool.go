@@ -62,7 +62,7 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 
 	basefilename := filepath.Base(u.Path)
 	outfile := filepath.Join(th.tmpdir, basefilename)
-	if err := Download(ctx, th.url, outfile); err != nil {
+	if err := download(ctx, th.url, outfile); err != nil {
 		return fmt.Errorf("error downloading %q to %q: %w", th.url, outfile, err)
 	}
 

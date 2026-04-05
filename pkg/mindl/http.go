@@ -7,8 +7,8 @@ import (
 	"os"
 )
 
-// Get makes a context-aware request to the given URL and returns the response.
-func Get(ctx context.Context, url string) (*http.Response, error) {
+// get makes a context-aware request to the given URL and returns the response.
+func get(ctx context.Context, url string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -16,15 +16,15 @@ func Get(ctx context.Context, url string) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
 }
 
-// Download downloads a URL to the targeted path.
-func Download(ctx context.Context, url, out string) error {
+// download downloads a URL to the targeted path.
+func download(ctx context.Context, url, out string) error {
 	f, err := os.Create(out)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	resp, err := Get(ctx, url)
+	resp, err := get(ctx, url)
 	if err != nil {
 		return err
 	}
