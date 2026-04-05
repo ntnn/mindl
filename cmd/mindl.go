@@ -21,8 +21,6 @@ func Main(ctx context.Context, args []string) error {
 		return Debug(ctx, args[1:])
 	case "download":
 		return Download(ctx, args[1:])
-	case "update":
-		return Update(ctx, args[1:])
 	default:
 		return fmt.Errorf("unknown command: %q", args[0])
 	}

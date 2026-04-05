@@ -14,7 +14,6 @@ import (
 type Tool struct {
 	URLTemplate string
 	InArchive   string
-	ExtractTo   string
 }
 
 // ToolHandler is the handler for a tool download.
@@ -45,13 +44,15 @@ func Handle(tool Tool, td *TemplateData) (*ToolHandler, error) {
 }
 
 // Download downloads and extracts a tool.
-func (th *ToolHandler) Download(ctx context.Context) error {
-	th.tmpdir = os.TempDir()
-	th.extractTo = th.tool.ExtractTo
+// If extractTo is empty the file is extracted to a temporary directory.
+func (th *ToolHandler) Download(ctx context.Context, extractTo string) error {
+	tmpdir, err := os.MkdirTemp(os.TempDir(), "mindl-")
+	if err != nil {
+		return fmt.Errorf("error creating temporary directory: %w", err)
+	}
+	th.tmpdir = tmpdir
+	th.extractTo = extractTo
 	if th.extractTo == "" {
-		// If .ExractTo is empty the hash for a different OS/Arch is
-		// being updated so extract to inside of the temporary
-		// directory.
 		th.extractTo = filepath.Join(th.tmpdir, "extracted")
 	}
 
@@ -86,18 +87,19 @@ func (th *ToolHandler) Cleanup() {
 }
 
 // DownloadAndHash downloads the tool for the given target/version combination.
-func DownloadAndHash(ctx context.Context, tool Tool, t Target, version string) (string, error) {
+// If extractTo is empty the file is extracted to a temporary directory.
+func DownloadAndHash(ctx context.Context, tool Tool, t Target, version, extractTo string) (string, error) {
 	td := NewTemplateData(t.OS, t.Arch)
 	td.Version = version
 
 	th, err := Handle(tool, td)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error creating tool handler for %q: %w", tool, err)
 	}
 	defer th.Cleanup()
 
-	if err := th.Download(ctx); err != nil {
-		return "", err
+	if err := th.Download(ctx, extractTo); err != nil {
+		return "", fmt.Errorf("error downloading tool %q: %w", tool, err)
 	}
 
 	return th.Hash(sum.Fnv128aPath)
