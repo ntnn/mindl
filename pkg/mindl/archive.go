@@ -65,7 +65,7 @@ func Untar(archive, target, output string) error {
 			return fmt.Errorf("error adding gzip reader: %w", err)
 		}
 		f = gzreader
-	case strings.HasSuffix(archive, ".bz"):
+	case strings.HasSuffix(archive, ".bz2"):
 		f = bzip2.NewReader(raw)
 	}
 
