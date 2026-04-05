@@ -2,6 +2,7 @@ package mindl
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -29,6 +30,10 @@ func download(ctx context.Context, url, out string) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d for %q", resp.StatusCode, url)
+	}
 
 	_, err = io.Copy(f, resp.Body)
 	return err
