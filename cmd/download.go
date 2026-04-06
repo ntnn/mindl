@@ -22,13 +22,16 @@ var (
 //
 // If -common is passed hashes for common OS/Arch combinations are added
 // as well if they are not set yet.
+//
+//nolint:cyclop // Just flag handling, not that complex.
 func Download(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
-	fURL := fs.String("url", "", "URL Template")
-	fInArchive := fs.String("inarchive", "", "File to extract from archive")
-	fVersion := fs.String("version", "", "Version to download")
-	fOut := fs.String("out", "", "Where to place the extracted file")
+	fURL := fs.String("url", "", "URL for the archive to download, templated")
+	fInArchive := fs.String("inarchive", "", "Path of the file to extract from the archive, templated")
+	fVersion := fs.String("version", "", "Version string substituted into templates")
+	fOut := fs.String("out", "", "Destination path for the extracted binary")
 	fCommon := fs.Bool("common", false, "Also update hashes for common OS/Arch combinations")
+	fTool := fs.String("tool", "", "Default -url and -inarchive to the values of this common tool")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -38,9 +41,20 @@ func Download(ctx context.Context, args []string) error {
 		return err
 	}
 
-	tool := mindl.Tool{
-		URLTemplate: *fURL,
-		InArchive:   *fInArchive,
+	tool := mindl.Tool{}
+	if *fTool != "" {
+		ct, ok := mindl.CommonTools[*fTool]
+		if !ok {
+			return fmt.Errorf("unknown tool: %q", *fTool)
+		}
+		tool.URLTemplate = ct.URL
+		tool.InArchive = ct.InArchive
+	}
+	if *fURL != "" {
+		tool.URLTemplate = *fURL
+	}
+	if *fInArchive != "" {
+		tool.InArchive = *fInArchive
 	}
 	current := mindl.CurrentTarget()
 
