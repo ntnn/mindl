@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -14,8 +15,14 @@ const (
 	Help = "help"
 )
 
+// Runner is the interface expected for functions being executed as a subcommand.
+type Runner func(ctx context.Context, args []string) error
+
 // SubCmd is a CLI subcommand implementation.
-type SubCmd func(ctx context.Context, args []string) error
+type SubCmd struct {
+	Runner Runner
+	Doc    string
+}
 
 // SimplCLI contains multiple [SubCmd]s.
 type SimplCLI struct {
@@ -46,13 +53,13 @@ func (s SimplCLI) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("unknown subcommand %q", cmd)
 	}
 
-	return subCmd(ctx, args[1:])
+	return subCmd.Runner(ctx, args[1:])
 }
 
 // Help prints the available subcommands to stdout.
 func (s SimplCLI) Help(ctx context.Context) {
 	if h, ok := s.SubCmds[Help]; ok {
-		_ = h(ctx, []string{})
+		_ = h.Runner(ctx, []string{})
 		return
 	}
 	DefaultHelp(s)
@@ -60,8 +67,24 @@ func (s SimplCLI) Help(ctx context.Context) {
 
 // DefaultHelp prints all available subcommands to stdout.
 func DefaultHelp(s SimplCLI) {
+	leftLength := 0
+	out := map[string]string{}
+	for key, subCmd := range s.SubCmds {
+		out[key] = subCmd.Doc
+		if len(key) > leftLength {
+			leftLength = len(key)
+		}
+	}
+
+	longestKey := slices.MaxFunc(maps.Keys(out), func(a, b string) int { return len(a) - len(b) })
+
+	// right-align and left-pad all subcommands, e.g.:
+	//   template-data   Print the template data with example values
+	//        template   Template the given string with example values
+	fmtstring := "  %" + strconv.Itoa(len(longestKey)) + "s   %s\n"
+
 	fmt.Println("Available subcommands:")
-	for key := range s.SubCmds {
-		fmt.Printf("  %s\n", key)
+	for key, subCmd := range s.SubCmds {
+		fmt.Printf(fmtstring, key, subCmd.Doc)
 	}
 }
