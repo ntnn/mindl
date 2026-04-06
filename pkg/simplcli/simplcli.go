@@ -38,13 +38,13 @@ var (
 // If the first argument is "help" all registered subcommands are printed to stdout.
 func (s SimplCLI) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		s.Help(ctx)
+		s.PrintHelp(ctx)
 		return ErrNoArgs
 	}
 
 	cmd := args[0]
 	if cmd == Help {
-		s.Help(ctx)
+		s.PrintHelp(ctx)
 		return nil
 	}
 
@@ -56,17 +56,17 @@ func (s SimplCLI) Run(ctx context.Context, args []string) error {
 	return subCmd.Runner(ctx, args[1:])
 }
 
-// Help prints the available subcommands to stdout.
-func (s SimplCLI) Help(ctx context.Context) {
+// PrintHelp prints the available subcommands to stdout.
+func (s SimplCLI) PrintHelp(ctx context.Context) {
 	if h, ok := s.SubCmds[Help]; ok {
 		_ = h.Runner(ctx, []string{})
 		return
 	}
-	DefaultHelp(s)
+	PrintDefaultHelp(s)
 }
 
-// DefaultHelp prints all available subcommands to stdout.
-func DefaultHelp(s SimplCLI) {
+// PrintDefaultHelp prints all available subcommands to stdout.
+func PrintDefaultHelp(s SimplCLI) {
 	leftLength := 0
 	out := map[string]string{}
 	for key, subCmd := range s.SubCmds {
