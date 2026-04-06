@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	if err := cmd.Main.Run(context.Background(), os.Stdout, os.Args[1:]); err != nil {
+	if err := cmd.Main.Run(context.Background(), os.Stdout, os.Stderr, os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
 }

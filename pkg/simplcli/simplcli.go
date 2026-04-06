@@ -15,11 +15,13 @@ const (
 	// Help is the special "help" subcommand. By default simplcli prints
 	// all available subcommands. If a SimplCLI has a custom help
 	// subcommand set it will be executed instead.
+	// The Help function is a [Runner] but only gets a valid stdout.
+	// io.Discard is passed as stderr.
 	Help = "help"
 )
 
 // Runner is the interface expected for functions being executed as a subcommand.
-type Runner func(ctx context.Context, out io.Writer, args []string) error
+type Runner func(ctx context.Context, stdout, stderr io.Writer, args []string) error
 
 // SubCmd is a CLI subcommand implementation.
 type SubCmd struct {
@@ -40,14 +42,14 @@ var (
 
 // Run runs subcommand indicated by the first argument.
 // If the first argument is "help" all registered subcommands are printed to out.
-func (s SimplCLI) Run(ctx context.Context, out io.Writer, args []string) error {
+func (s SimplCLI) Run(ctx context.Context, stdout, stderr io.Writer, args []string) error {
 	if len(args) == 0 {
 		return ErrNoArgs
 	}
 
 	cmd := args[0]
 	if cmd == Help {
-		return s.PrintHelp(ctx, out)
+		return s.PrintHelp(ctx, stdout)
 	}
 
 	subCmd, ok := s.SubCmds[cmd]
@@ -55,13 +57,13 @@ func (s SimplCLI) Run(ctx context.Context, out io.Writer, args []string) error {
 		return fmt.Errorf("unknown subcommand %q", cmd)
 	}
 
-	return subCmd.Runner(ctx, out, args[1:])
+	return subCmd.Runner(ctx, stdout, stderr, args[1:])
 }
 
 // PrintHelp prints the available subcommands to out.
 func (s SimplCLI) PrintHelp(ctx context.Context, out io.Writer) error {
 	if h, ok := s.SubCmds[Help]; ok {
-		return h.Runner(ctx, out, []string{})
+		return h.Runner(ctx, out, io.Discard, []string{})
 	}
 	return PrintDefaultHelp(out, s)
 }
