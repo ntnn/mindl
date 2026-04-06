@@ -9,26 +9,30 @@ import (
 	"strings"
 
 	"github.com/ntnn/mindl/pkg/mindl"
+	"github.com/ntnn/mindl/pkg/simplcli"
 )
 
 // Debug dispatches debug subcommands.
-func Debug(ctx context.Context, args []string) error {
-	if len(args) == 0 {
-		return ErrNoArgs
-	}
-	switch args[0] {
-	case "template-data":
-		return DebugTemplateData(ctx, os.Stdout)
-	case "template":
-		return DebugTemplate(ctx, os.Stdout, strings.Join(args[1:], " "))
-	default:
-		return fmt.Errorf("unknown command: %q", args[0])
-	}
+var Debug = simplcli.SimplCLI{
+	SubCmds: map[string]simplcli.SubCmd{
+		"template-data": {
+			func(ctx context.Context, _ []string) error {
+				return DebugTemplateData(ctx, os.Stdout)
+			},
+			"Print the template data with example values",
+		},
+		"template": {
+			func(ctx context.Context, args []string) error {
+				return DebugTemplate(ctx, os.Stdout, strings.Join(args, " "))
+			},
+			"Template the given string with example values",
+		},
+	},
 }
 
 // DebugTemplateData writes template data as JSON to out.
 func DebugTemplateData(_ context.Context, out io.Writer) error {
-	td := mindl.NewTemplateData("", "")
+	td := mindl.NewTemplateData("<OS>", "<ARCH>")
 
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
@@ -37,7 +41,7 @@ func DebugTemplateData(_ context.Context, out io.Writer) error {
 
 // DebugTemplate renders text as a template and writes the result to out.
 func DebugTemplate(_ context.Context, out io.Writer, text string) error {
-	td := mindl.NewTemplateData("", "")
+	td := mindl.NewTemplateData("<OS>", "<ARCH>")
 	td.Version = "<VERSION>"
 	result, err := mindl.Template(text, td)
 	if err != nil {
