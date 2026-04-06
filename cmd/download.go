@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/ntnn/mindl/pkg/mindl"
 	"github.com/ntnn/mindl/pkg/sum"
@@ -24,7 +25,7 @@ var (
 // as well if they are not set yet.
 //
 //nolint:cyclop // Just flag handling, not that complex.
-func Download(ctx context.Context, args []string) error {
+func Download(ctx context.Context, _ io.Writer, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL for the archive to download, templated")
 	fInArchive := fs.String("inarchive", "", "Path of the file to extract from the archive, templated")

@@ -3,7 +3,9 @@ package simplcli
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strconv"
@@ -17,7 +19,7 @@ const (
 )
 
 // Runner is the interface expected for functions being executed as a subcommand.
-type Runner func(ctx context.Context, args []string) error
+type Runner func(ctx context.Context, out io.Writer, args []string) error
 
 // SubCmd is a CLI subcommand implementation.
 type SubCmd struct {
@@ -32,21 +34,20 @@ type SimplCLI struct {
 
 var (
 	// ErrNoArgs is returned when no arguments are passed.
-	ErrNoArgs = fmt.Errorf(`no arguments passed, pass %q as the first argument`+
+	ErrNoArgs = fmt.Errorf(`no arguments passed, pass %q as the first argument `+
 		`to get the list of available subcommands`, Help)
 )
 
 // Run runs subcommand indicated by the first argument.
-// If the first argument is "help" all registered subcommands are printed to stdout.
-func (s SimplCLI) Run(ctx context.Context, args []string) error {
+// If the first argument is "help" all registered subcommands are printed to out.
+func (s SimplCLI) Run(ctx context.Context, out io.Writer, args []string) error {
 	if len(args) == 0 {
 		return ErrNoArgs
 	}
 
 	cmd := args[0]
 	if cmd == Help {
-		s.PrintHelp(ctx)
-		return nil
+		return s.PrintHelp(ctx, out)
 	}
 
 	subCmd, ok := s.SubCmds[cmd]
@@ -54,20 +55,23 @@ func (s SimplCLI) Run(ctx context.Context, args []string) error {
 		return fmt.Errorf("unknown subcommand %q", cmd)
 	}
 
-	return subCmd.Runner(ctx, args[1:])
+	return subCmd.Runner(ctx, out, args[1:])
 }
 
-// PrintHelp prints the available subcommands to stdout.
-func (s SimplCLI) PrintHelp(ctx context.Context) {
+// PrintHelp prints the available subcommands to out.
+func (s SimplCLI) PrintHelp(ctx context.Context, out io.Writer) error {
 	if h, ok := s.SubCmds[Help]; ok {
-		_ = h.Runner(ctx, []string{})
-		return
+		return h.Runner(ctx, out, []string{})
 	}
-	PrintDefaultHelp(s)
+	return PrintDefaultHelp(out, s)
 }
 
-// PrintDefaultHelp prints all available subcommands to stdout.
-func PrintDefaultHelp(s SimplCLI) {
+// PrintDefaultHelp prints all available subcommands to out.
+func PrintDefaultHelp(out io.Writer, s SimplCLI) error {
+	if len(s.SubCmds) == 0 {
+		_, err := fmt.Fprintln(out, "No subcommands available")
+		return err
+	}
 	subCmds := slices.Collect(maps.Keys(s.SubCmds))
 	slices.Sort(subCmds)
 
@@ -78,8 +82,12 @@ func PrintDefaultHelp(s SimplCLI) {
 	//        template   Template the given string with example values
 	fmtstring := "  %" + strconv.Itoa(len(longestKey)) + "s   %s\n"
 
-	fmt.Println("Available subcommands:")
+	var errs error
+	_, err := fmt.Fprintln(out, "Available subcommands:")
+	errs = errors.Join(errs, err)
 	for _, key := range subCmds {
-		fmt.Printf(fmtstring, key, s.SubCmds[key].Doc)
+		_, err := fmt.Fprintf(out, fmtstring, key, s.SubCmds[key].Doc)
+		errs = errors.Join(errs, err)
 	}
+	return errs
 }
