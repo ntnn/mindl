@@ -107,6 +107,11 @@ linters:
     - wastedassign
     - whitespace
     - zerologlint
+  exclusions:
+    rules:
+      - path: pkg/mindl/commonTool.go
+        linters:
+          - lll
 
 formatters:
   enable:

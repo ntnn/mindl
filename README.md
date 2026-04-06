@@ -48,6 +48,27 @@ To update simply update the version of the tool being used and rerun the
 command with `MINDL_UPDATE=true`. mindl will automatically update all
 OS/arch combinations for this tool registered in the sum file.
 
+#### -tool
+
+mindl also records the URL and InArchive templates of commonly used tools.
+The full list is recorded in [`mindl.CommonTools`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#CommonTools).
+
+When passed to the download subcommand for the `-tool` flag both `-url`
+and `-inarchive` default to these values, but can still be overriden if
+specified.
+
+```makefile
+GOLANGCI_LINT_VER := 2.10.0
+GOLANGCI_LINT := hack/tools/golangci-lint-$(GOLANGCI_LINT_VER)
+
+$(GOLANGCI_LINT):
+	mkdir -p hack/tools
+	go run github.com/ntnn/mindl download -common -out $@ -tool golangci-lint -version $(GOLANGCI_LINT_VER)
+
+lint: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run ./...
+```
+
 ## `mindl.sum`
 
 `mindl.sum` is a CSV file that stores the SHA-512 hash for each URL,
@@ -63,15 +84,17 @@ verifies future downloads against the hashes recorded in this file.
 |------|-------------|
 | `-url` | URL for the archive to download, templated |
 | `-inarchive` | Path of the file to extract from the archive, templated |
-| `-out` | Destination path for the extracted binary, templated |
+| `-out` | Destination path for the extracted binary |
 | `-version` | Version string substituted into templates |
-| `-common` | Also download and hash for common OS/Arch combinations |
+| `-common` | Also update hashes for common OS/Arch combinations |
+| `-tool` | Default `-url` and `-inarchive` to the values of this common tool |
 
 For the targets added with `-common` check [`mindl.CommonTargets`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#pkg-variables).
+For the tools available for `-tool` check [`mindl.CommonTools`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#CommonTools).
 
 #### Templating
 
-`-url`, `-inarchive` and `-out` are templated. The templates get [`mindl.TemplateData`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#TemplateData) as context.
+`-url` and `-inarchive` are templated. The templates get [`mindl.TemplateData`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#TemplateData) as context.
 Additionally convenience functions from [`mindl.FuncMap`](https://pkg.go.dev/github.com/ntnn/mindl@main/pkg/mindl#FuncMap) are available in the templates.
 
 ## Downloading for specific OS/Arch
