@@ -32,7 +32,7 @@ type SimplCLI struct {
 
 var (
 	// ErrNoArgs is returned when no arguments are passed.
-	ErrNoArgs = fmt.Errorf(`no arguments passed, pass %q as the first argument`+
+	ErrNoArgs = fmt.Errorf(`no arguments passed, pass %q as the first argument `+
 		`to get the list of available subcommands`, Help)
 )
 
