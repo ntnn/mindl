@@ -19,7 +19,7 @@ lint-fix: lint
 
 .PHONY: test
 test:
-	$(GO) test -race -v $(WHAT)
+	$(GO) test -race $(WHAT)
 
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
