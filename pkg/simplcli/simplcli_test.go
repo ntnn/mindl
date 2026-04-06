@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"os"
+	"io"
 	"strings"
 	"testing"
 )
@@ -31,7 +31,7 @@ func TestSimplCLIRun(t *testing.T) {
 			t.Parallel()
 
 			var capturedArgs []string
-			runner := func(_ context.Context, args []string) error {
+			runner := func(_ context.Context, _ io.Writer, args []string) error {
 				capturedArgs = args
 				return nil
 			}
@@ -41,7 +41,7 @@ func TestSimplCLIRun(t *testing.T) {
 				},
 			}
 
-			err := cli.Run(context.Background(), tc.args)
+			err := cli.Run(context.Background(), io.Discard, tc.args)
 			if err != nil {
 				t.Fatalf("Run returned unexpected error: %v", err)
 			}
@@ -63,7 +63,7 @@ func TestSimplCLIRunError(t *testing.T) {
 	cli := SimplCLI{
 		SubCmds: map[string]SubCmd{
 			"fail": {
-				Runner: func(_ context.Context, _ []string) error {
+				Runner: func(_ context.Context, _ io.Writer, _ []string) error {
 					return errors.New("runner failed")
 				},
 				Doc: "always fails",
@@ -94,7 +94,7 @@ func TestSimplCLIRunError(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := cli.Run(context.Background(), tc.args)
+			err := cli.Run(context.Background(), io.Discard, tc.args)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -108,40 +108,25 @@ func TestSimplCLIRunError(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // test captures os.Stdout which is global state
 func TestSimplCLIRunHelp(t *testing.T) {
-	// "help" as first arg should not return an error
+	t.Parallel()
+
 	cli := SimplCLI{
 		SubCmds: map[string]SubCmd{
 			"greet": {
-				Runner: func(_ context.Context, _ []string) error { return nil },
+				Runner: func(_ context.Context, _ io.Writer, _ []string) error { return nil },
 				Doc:    "say hello",
 			},
 		},
 	}
 
-	// Capture stdout since PrintHelp writes there
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	err := cli.Run(context.Background(), []string{"help"})
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("failed to close pipe writer: %v", err)
-	}
-	os.Stdout = old
-
+	var buf bytes.Buffer
+	err := cli.Run(context.Background(), &buf, []string{"help"})
 	if err != nil {
 		t.Fatalf("Run(help) returned unexpected error: %v", err)
 	}
 
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("failed to read pipe: %v", err)
-	}
 	output := buf.String()
-
 	if !strings.Contains(output, "greet") {
 		t.Errorf("help output should contain subcommand name, got %q", output)
 	}
@@ -154,20 +139,20 @@ func TestSimplCLIRunCustomHelp(t *testing.T) {
 	cli := SimplCLI{
 		SubCmds: map[string]SubCmd{
 			"help": {
-				Runner: func(_ context.Context, _ []string) error {
+				Runner: func(_ context.Context, _ io.Writer, _ []string) error {
 					customHelpCalled = true
 					return nil
 				},
 				Doc: "custom help",
 			},
 			"greet": {
-				Runner: func(_ context.Context, _ []string) error { return nil },
+				Runner: func(_ context.Context, _ io.Writer, _ []string) error { return nil },
 				Doc:    "say hello",
 			},
 		},
 	}
 
-	err := cli.Run(context.Background(), []string{"help"})
+	err := cli.Run(context.Background(), io.Discard, []string{"help"})
 	if err != nil {
 		t.Fatalf("Run(help) returned unexpected error: %v", err)
 	}
@@ -176,8 +161,9 @@ func TestSimplCLIRunCustomHelp(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // test captures os.Stdout which is global state
 func TestPrintDefaultHelp(t *testing.T) {
+	t.Parallel()
+
 	cli := SimplCLI{
 		SubCmds: map[string]SubCmd{
 			"beta":  {Doc: "beta command"},
@@ -185,21 +171,12 @@ func TestPrintDefaultHelp(t *testing.T) {
 		},
 	}
 
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
-	PrintDefaultHelp(cli)
-
-	if err := w.Close(); err != nil {
-		t.Fatalf("failed to close pipe writer: %v", err)
-	}
-	os.Stdout = old
-
 	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatalf("failed to read pipe: %v", err)
+	err := PrintDefaultHelp(&buf, cli)
+	if err != nil {
+		t.Fatalf("unexpected error printint help: %v", err)
 	}
+
 	output := buf.String()
 
 	if !strings.Contains(output, "Available subcommands:") {
