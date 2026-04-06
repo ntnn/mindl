@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/ntnn/mindl/pkg/mindl"
 	"github.com/ntnn/mindl/pkg/sum"
@@ -14,6 +15,11 @@ import (
 var (
 	hasher      = sum.Sha512Path
 	hasherDescr = "sha512"
+)
+
+const (
+	sumDBPath       = "mindl.sum"
+	globalSumDBPath = filepath.Join(sumDBPath)
 )
 
 // Download fetches and extracts an executable from a URL.

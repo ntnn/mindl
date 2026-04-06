@@ -29,3 +29,8 @@ func OS() string {
 func Arch() string {
 	return getenv("MINDL_ARCH", runtime.GOARCH)
 }
+
+// GlobalCache returns the value of MINDL_CACHE.
+func GlobalCache() string {
+	return getenv("MINDL_CACHE", "")
+}
