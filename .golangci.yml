@@ -109,9 +109,15 @@ linters:
     - zerologlint
   exclusions:
     rules:
+      # This file mostly contains URL templates, long lines are expected
       - path: pkg/mindl/commonTool.go
         linters:
           - lll
+      # The composites in the cmd package are just {Runner, Docstring}.
+      - path: cmd/
+        linters:
+          -  govet
+        text: composites
 
 formatters:
   enable:
