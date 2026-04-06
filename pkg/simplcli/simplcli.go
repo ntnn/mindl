@@ -3,7 +3,6 @@ package simplcli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -33,14 +32,14 @@ type SimplCLI struct {
 
 var (
 	// ErrNoArgs is returned when no arguments are passed.
-	ErrNoArgs = errors.New("no arguments passed")
+	ErrNoArgs = fmt.Errorf(`no arguments passed, pass %q as the first argument`+
+		`to get the list of available subcommands`, Help)
 )
 
 // Run runs subcommand indicated by the first argument.
 // If the first argument is "help" all registered subcommands are printed to stdout.
 func (s SimplCLI) Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		s.PrintHelp(ctx)
 		return ErrNoArgs
 	}
 
