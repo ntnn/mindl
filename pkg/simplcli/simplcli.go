@@ -68,6 +68,10 @@ func (s SimplCLI) PrintHelp(ctx context.Context) {
 
 // PrintDefaultHelp prints all available subcommands to stdout.
 func PrintDefaultHelp(s SimplCLI) {
+	if len(s.SubCmds) == 0 {
+		fmt.Println("No subcommands available")
+		return
+	}
 	subCmds := slices.Collect(maps.Keys(s.SubCmds))
 	slices.Sort(subCmds)
 
