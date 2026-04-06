@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 )
 
@@ -67,16 +69,10 @@ func (s SimplCLI) PrintHelp(ctx context.Context) {
 
 // PrintDefaultHelp prints all available subcommands to stdout.
 func PrintDefaultHelp(s SimplCLI) {
-	leftLength := 0
-	out := map[string]string{}
-	for key, subCmd := range s.SubCmds {
-		out[key] = subCmd.Doc
-		if len(key) > leftLength {
-			leftLength = len(key)
-		}
-	}
+	subCmds := slices.Collect(maps.Keys(s.SubCmds))
+	slices.Sort(subCmds)
 
-	longestKey := slices.MaxFunc(maps.Keys(out), func(a, b string) int { return len(a) - len(b) })
+	longestKey := slices.MaxFunc(subCmds, func(a, b string) int { return len(a) - len(b) })
 
 	// right-align and left-pad all subcommands, e.g.:
 	//   template-data   Print the template data with example values
@@ -84,7 +80,7 @@ func PrintDefaultHelp(s SimplCLI) {
 	fmtstring := "  %" + strconv.Itoa(len(longestKey)) + "s   %s\n"
 
 	fmt.Println("Available subcommands:")
-	for key, subCmd := range s.SubCmds {
-		fmt.Printf(fmtstring, key, subCmd.Doc)
+	for _, key := range subCmds {
+		fmt.Printf(fmtstring, key, s.SubCmds[key].Doc)
 	}
 }
