@@ -54,9 +54,19 @@ func Title(in string) string {
 	return strings.Join(split, " ")
 }
 
+// X8664 returns "x86_64" if the input is "amd64", otherwise it returns
+// the input verbatim.
+func X8664(in string) string {
+	if in == "amd64" {
+		return "x86_64"
+	}
+	return in
+}
+
 // FuncMap contains template functions used by [Template].
 var FuncMap = map[string]any{
-	"title": Title,
+	"title":  Title,
+	"x86_64": X8664,
 }
 
 // Template parses and executes the given text as a template with the given data.
