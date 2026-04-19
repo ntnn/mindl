@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -41,7 +42,7 @@ func TestSimplCLIRun(t *testing.T) {
 				},
 			}
 
-			err := cli.Run(context.Background(), io.Discard, io.Discard, tc.args)
+			err := cli.Run(t.Context(), io.Discard, io.Discard, tc.args)
 			if err != nil {
 				t.Fatalf("Run returned unexpected error: %v", err)
 			}
@@ -94,7 +95,7 @@ func TestSimplCLIRunError(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			err := cli.Run(context.Background(), io.Discard, io.Discard, tc.args)
+			err := cli.Run(t.Context(), io.Discard, io.Discard, tc.args)
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -121,7 +122,7 @@ func TestSimplCLIRunHelp(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	err := cli.Run(context.Background(), &buf, io.Discard, []string{"help"})
+	err := cli.Run(t.Context(), &buf, io.Discard, []string{"help"})
 	if err != nil {
 		t.Fatalf("Run(help) returned unexpected error: %v", err)
 	}
@@ -152,7 +153,7 @@ func TestSimplCLIRunCustomHelp(t *testing.T) {
 		},
 	}
 
-	err := cli.Run(context.Background(), io.Discard, io.Discard, []string{"help"})
+	err := cli.Run(t.Context(), io.Discard, io.Discard, []string{"help"})
 	if err != nil {
 		t.Fatalf("Run(help) returned unexpected error: %v", err)
 	}
@@ -199,5 +200,125 @@ func TestPrintDefaultHelp(t *testing.T) {
 	}
 	if !strings.Contains(output, "beta command") {
 		t.Errorf("output should contain 'beta command', got %q", output)
+	}
+}
+
+func TestSimplCLIMiddlewareExecutionOrder(t *testing.T) {
+	t.Parallel()
+
+	var order []string
+	mw1 := func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error {
+		order = append(order, "mw1")
+		return next(ctx, stdout, stderr, args)
+	}
+	mw2 := func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error {
+		order = append(order, "mw2")
+		return next(ctx, stdout, stderr, args)
+	}
+	runner := func(_ context.Context, _, _ io.Writer, _ []string) error {
+		order = append(order, "runner")
+		return nil
+	}
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"test": {Runner: runner},
+		},
+		Middlewares: []Middleware{mw1, mw2},
+	}
+
+	if err := cli.Run(t.Context(), io.Discard, io.Discard, []string{"test"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := []string{"mw1", "mw2", "runner"}
+	if len(order) != len(expected) {
+		t.Fatalf("expected order %v, got %v", expected, order)
+	}
+	for i, want := range expected {
+		if order[i] != want {
+			t.Errorf("at index %d, expected %q, got %q", i, want, order[i])
+		}
+	}
+}
+
+func TestSimplCLIMiddlewareInterceptAndStop(t *testing.T) {
+	t.Parallel()
+	mw := func(_ context.Context, _, _ io.Writer, _ []string, _ Runner) error {
+		return errors.New("middleware blocked")
+	}
+	runnerCalled := false
+	runner := func(_ context.Context, _, _ io.Writer, _ []string) error {
+		runnerCalled = true
+		return nil
+	}
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"test": {Runner: runner},
+		},
+		Middlewares: []Middleware{mw},
+	}
+
+	err := cli.Run(t.Context(), io.Discard, io.Discard, []string{"test"})
+	if err == nil || err.Error() != "middleware blocked" {
+		t.Fatalf("expected error 'middleware blocked', got %v", err)
+	}
+	if runnerCalled {
+		t.Error("runner should not have been called")
+	}
+}
+
+func TestSimplCLIMiddlewareModifyStdout(t *testing.T) {
+	t.Parallel()
+	mw := func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error {
+		_, _ = fmt.Fprint(stdout, "mw-prefix ")
+		return next(ctx, stdout, stderr, args)
+	}
+	runner := func(_ context.Context, stdout, _ io.Writer, _ []string) error {
+		_, _ = fmt.Fprint(stdout, "runner-output")
+		return nil
+	}
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"test": {Runner: runner},
+		},
+		Middlewares: []Middleware{mw},
+	}
+
+	var buf bytes.Buffer
+	if err := cli.Run(t.Context(), &buf, io.Discard, []string{"test"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "mw-prefix runner-output"
+	if buf.String() != want {
+		t.Errorf("expected output %q, got %q", want, buf.String())
+	}
+}
+
+func TestSimplCLIMiddlewareModifyContext(t *testing.T) {
+	t.Parallel()
+	type ctxKey string
+	const key ctxKey = "mykey"
+	const val = "myval"
+
+	mw := func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error {
+		ctx = context.WithValue(ctx, key, val)
+		return next(ctx, stdout, stderr, args)
+	}
+	runner := func(ctx context.Context, _, _ io.Writer, _ []string) error {
+		if ctx.Value(key) != val {
+			return errors.New("context value not found")
+		}
+		return nil
+	}
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"test": {Runner: runner},
+		},
+		Middlewares: []Middleware{mw},
+	}
+
+	if err := cli.Run(t.Context(), io.Discard, io.Discard, []string{"test"}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
