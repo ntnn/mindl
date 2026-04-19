@@ -16,4 +16,8 @@ var CommonTools = map[string]CommonTool{
 		URL:       "https://github.com/FiloSottile/mkcert/releases/download/v{{.Version}}/mkcert-v{{.Version}}-{{.OS}}-{{.Arch}}{{.Exe}}",
 		InArchive: "",
 	},
+	"goreleaser": {
+		URL:       "https://github.com/goreleaser/goreleaser/releases/download/v{{.Version}}/goreleaser_{{.OS | title}}_{{.Arch | x86_64}}.{{.OSArchive}}",
+		InArchive: "goreleaser{{.Exe}}",
+	},
 }
