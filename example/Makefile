@@ -4,8 +4,10 @@ WHAT ?= ./...
 TOOLS_DIR = hack/tools
 
 GOLANGCI_LINT_VER := 2.10.0
-GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
+GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint-$(GOLANGCI_LINT_VER)
+
+MKCERT_VER := 1.4.4
+MKCERT := $(TOOLS_DIR)/mkcert-$(MKCERT_VER)
 
 check: lint test
 
@@ -25,5 +27,9 @@ $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
 	$(GO) tool github.com/ntnn/mindl download -common -out $@ \
 		-url 'https://github.com/golangci/golangci-lint/releases/download/v{{.Version}}/golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}.{{.OSArchive}}' \
-		-inarchive golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}/$(GOLANGCI_LINT_BIN){{.Exe}} \
+		-inarchive golangci-lint-{{.Version}}-{{.OS}}-{{.Arch}}/golangci-lint{{.Exe}} \
 		-version $(GOLANGCI_LINT_VER)
+
+$(MKCERT):
+	mkdir -p $(TOOLS_DIR)
+	$(GO) tool github.com/ntnn/mindl download -common -out $@ -tool mkcert -version $(MKCERT_VER)
