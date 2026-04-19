@@ -8,6 +8,7 @@ GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint-$(GOLANGCI_LINT_VER)
 
 GORELEASER_VER := 2.15.3
 GORELEASER := $(TOOLS_DIR)/goreleaser-$(GORELEASER_VER)
+GORELEASER_FLAGS := --clean
 
 check: lint test example
 
@@ -29,11 +30,11 @@ example:
 
 .PHONY: snapshot
 snapshot: $(GORELEASER)
-	$(GORELEASER) release --snapshot --skip announce,publish
+	$(GORELEASER) release $(GORELEASER_FLAGS) --snapshot --skip announce,publish
 
 .PHONY: release
 release: $(GORELEASER)
-	$(GORELEASER) release
+	$(GORELEASER) release $(GORELEASER_FLAGS)
 
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
