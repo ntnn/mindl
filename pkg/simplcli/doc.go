@@ -1,6 +1,4 @@
-// Package simplcli provides a simple CLI (command line interface) implementation.
-// It is a lightweight and easy-to-use library for building subcommands and applying middleware to CLI applications.
-// It uses no dependencies outside of the Go stdlib.
+// Package simplcli is a simple no-dependencies CLI implementation.
 //
 // A [SimplCLI] is a collection of sub commands, which are just
 // a function matching the [Runner] interface and a doc string.
