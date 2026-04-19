@@ -1,6 +1,6 @@
 module github.com/ntnn/mindl/example
 
-go 1.26.1
+go 1.25.0
 
 tool github.com/ntnn/mindl
 
