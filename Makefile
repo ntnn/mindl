@@ -4,8 +4,10 @@ WHAT ?= ./...
 TOOLS_DIR = hack/tools
 
 GOLANGCI_LINT_VER := 2.11.0
-GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
+GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint-$(GOLANGCI_LINT_VER)
+
+GORELEASER_VER := 2.15.3
+GORELEASER := $(TOOLS_DIR)/goreleaser-$(GORELEASER_VER)
 
 check: lint test example
 
@@ -25,6 +27,18 @@ test:
 example:
 	cd example; git clean -fdx . ; make tools
 
+.PHONY: snapshot
+snapshot: $(GORELEASER)
+	$(GORELEASER) release --snapshot --skip announce,publish
+
+.PHONY: release
+release: $(GORELEASER)
+	$(GORELEASER) release
+
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)
 	$(GO) run . download -common -out $@ -tool golangci-lint -version $(GOLANGCI_LINT_VER)
+
+$(GORELEASER):
+	mkdir -p $(TOOLS_DIR)
+	$(GO) run . download -common -out $@ -tool goreleaser -version $(GORELEASER_VER)
