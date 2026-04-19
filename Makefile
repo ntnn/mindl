@@ -7,7 +7,7 @@ GOLANGCI_LINT_VER := 2.11.0
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(TOOLS_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER)
 
-check: lint test
+check: lint test example
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
@@ -20,6 +20,10 @@ lint-fix: lint
 .PHONY: test
 test:
 	$(GO) test -race $(WHAT)
+
+.PHONY: example
+example:
+	cd example; git clean -fdx . ; make tools
 
 $(GOLANGCI_LINT):
 	mkdir -p $(TOOLS_DIR)

@@ -13,8 +13,13 @@ import (
 
 // Tool is the definition of a tool to download.
 type Tool struct {
+	// URLTemplate is templated with [TemplateData].
+	// See [CommonTools] for examples.
 	URLTemplate string
-	InArchive   string
+	// InArchive is the location within the archive.
+	// If the downloaded file is the file and not an archive leave
+	// InArchive empty.
+	InArchive string
 }
 
 // ToolHandler is the handler for a tool download.
@@ -63,6 +68,10 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 	outfile := filepath.Join(th.tmpdir, basefilename)
 	if err := download(ctx, th.url, outfile); err != nil {
 		return fmt.Errorf("error downloading %q to %q: %w", th.url, outfile, err)
+	}
+
+	if th.inArchive == "" {
+		return iocopy(outfile, th.extractTo)
 	}
 
 	if err := Unarchive(outfile, th.inArchive, th.extractTo); err != nil {
