@@ -29,9 +29,13 @@ type SubCmd struct {
 	Doc    string
 }
 
+// Middleware is a function that wraps [Runner]s.
+type Middleware func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error
+
 // SimplCLI contains multiple [SubCmd]s.
 type SimplCLI struct {
-	SubCmds map[string]SubCmd
+	SubCmds     map[string]SubCmd
+	Middlewares []Middleware // A list of middlewares to be applied to all subcommands.
 }
 
 var (
@@ -57,7 +61,28 @@ func (s SimplCLI) Run(ctx context.Context, stdout, stderr io.Writer, args []stri
 		return fmt.Errorf("unknown subcommand %q", cmd)
 	}
 
-	return subCmd.Runner(ctx, stdout, stderr, args[1:])
+	// Build the execution chain by wrapping with each middleware from bottom to top.
+	// CLI:
+	//   Runner: R
+	//   MWs:
+	//     - A
+	//     - B
+	//     - C
+	// -> C runs R
+	// -> B runs C
+	// -> A runs B
+	// -> A is executed
+	runner := subCmd.Runner
+	middlewares := slices.Clone(s.Middlewares)
+	slices.Reverse(middlewares)
+	for _, mw := range middlewares {
+		next := runner
+		runner = func(ctx context.Context, stdout, stderr io.Writer, args []string) error {
+			return mw(ctx, stdout, stderr, args, next)
+		}
+	}
+
+	return runner(ctx, stdout, stderr, args[1:])
 }
 
 // PrintHelp prints the available subcommands to out.
