@@ -13,8 +13,13 @@ import (
 
 // Tool is the definition of a tool to download.
 type Tool struct {
+	// URLTemplate is templated with [TemplateData].
+	// See [CommonTools] for examples.
 	URLTemplate string
-	InArchive   string
+	// InArchive is the location within the archive.
+	// If the downloaded file is the file and not an archive leave
+	// InArchive empty.
+	InArchive string
 }
 
 // ToolHandler is the handler for a tool download.
