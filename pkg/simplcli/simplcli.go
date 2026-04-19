@@ -25,10 +25,14 @@ type Runner func(ctx context.Context, stdout, stderr io.Writer, args []string) e
 
 // SubCmd is a CLI subcommand implementation.
 type SubCmd struct {
-	Runner  Runner
-	Doc     string
-	PreRun  Runner // Executed before Runner. If it returns an error, Runner is skipped.
-	PostRun Runner // Executed after Runner, only if Runner returns nil.
+	Runner Runner
+	Doc    string
+	// Executed before Runner if set. If it returns an error, Runner is skipped.
+	PreRun Runner
+	// Executed after Runner if set.
+	// Executed regardless of whether Runner returns an error.
+	// If Runner and PostRun errored the Runner error takes precedence.
+	PostRun Runner
 }
 
 // SimplCLI contains multiple [SubCmd]s.
@@ -65,15 +69,19 @@ func (s SimplCLI) Run(ctx context.Context, stdout, stderr io.Writer, args []stri
 		}
 	}
 
-	err := subCmd.Runner(ctx, stdout, stderr, args[1:])
-	if err != nil {
-		return err
+	runnerErr := subCmd.Runner(ctx, stdout, stderr, args[1:])
+
+	var postRunErr error
+	if subCmd.PostRun != nil {
+		postRunErr = subCmd.PostRun(ctx, stdout, stderr, args[1:])
 	}
 
-	if subCmd.PostRun != nil {
-		if err := subCmd.PostRun(ctx, stdout, stderr, args[1:]); err != nil {
-			return fmt.Errorf("error in post run: %w", err)
-		}
+	if runnerErr != nil {
+		return runnerErr
+	}
+
+	if postRunErr != nil {
+		return fmt.Errorf("error in post run: %w", postRunErr)
 	}
 
 	return nil
