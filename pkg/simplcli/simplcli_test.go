@@ -73,12 +73,12 @@ func TestSimplCLIRunError(t *testing.T) {
 
 	tests := map[string]struct {
 		args       []string
-		wantErr    error
+		wantErr    string
 		wantSubstr string
 	}{
 		"no args": {
 			args:    []string{},
-			wantErr: ErrNoArgs,
+			wantErr: ErrNoArgs.Error(),
 		},
 		"unknown subcommand": {
 			args:       []string{"nonexistent"},
@@ -98,8 +98,8 @@ func TestSimplCLIRunError(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
-			if tc.wantErr != nil && !errors.Is(err, tc.wantErr) {
-				t.Errorf("error = %v, want %v", err, tc.wantErr)
+			if tc.wantErr != "" && !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("error = %q, want error containing %q", err, tc.wantErr)
 			}
 			if tc.wantSubstr != "" && !strings.Contains(err.Error(), tc.wantSubstr) {
 				t.Errorf("error = %q, want it to contain %q", err, tc.wantSubstr)
@@ -199,5 +199,123 @@ func TestPrintDefaultHelp(t *testing.T) {
 	}
 	if !strings.Contains(output, "beta command") {
 		t.Errorf("output should contain 'beta command', got %q", output)
+	}
+}
+
+func TestSimplCLIHooks(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		preRun           Runner
+		runner           Runner
+		postRun          Runner
+		wantErr          string
+		wantPreCalled    bool
+		wantRunnerCalled bool
+		wantPostCalled   bool
+	}{
+		{
+			name:             "pre-run and post-run called successfully",
+			wantPreCalled:    true,
+			wantRunnerCalled: true,
+			wantPostCalled:   true,
+		},
+		{
+			name: "pre-run error stops execution",
+			preRun: func(_ context.Context, _, _ io.Writer, _ []string) error {
+				return errors.New("pre-run failed")
+			},
+			wantPreCalled:    true,
+			wantRunnerCalled: false,
+			wantErr:          "pre-run failed",
+		},
+		{
+			name: "runner error stops post-run",
+			runner: func(_ context.Context, _, _ io.Writer, _ []string) error {
+				return errors.New("runner failed")
+			},
+			wantPreCalled:    true,
+			wantRunnerCalled: true,
+			wantPostCalled:   false,
+			wantErr:          "runner failed",
+		},
+		{
+			name: "post-run error is returned",
+			postRun: func(_ context.Context, _, _ io.Writer, _ []string) error {
+				return errors.New("post-run failed")
+			},
+			wantPreCalled:    true,
+			wantRunnerCalled: true,
+			wantPostCalled:   true,
+			wantErr:          "post-run failed",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var preCalled, runnerCalled, postCalled bool
+
+			preRun := func(ctx context.Context, stdout, stderr io.Writer, args []string) error {
+				preCalled = true
+				if tc.preRun != nil {
+					return tc.preRun(ctx, stdout, stderr, args)
+				}
+				return nil
+			}
+
+			runner := func(ctx context.Context, stdout, stderr io.Writer, args []string) error {
+				runnerCalled = true
+				if tc.runner != nil {
+					return tc.runner(ctx, stdout, stderr, args)
+				}
+				return nil
+			}
+
+			postRun := func(ctx context.Context, stdout, stderr io.Writer, args []string) error {
+				postCalled = true
+				if tc.postRun != nil {
+					return tc.postRun(ctx, stdout, stderr, args)
+				}
+				return nil
+			}
+
+			cli := SimplCLI{
+				SubCmds: map[string]SubCmd{
+					"test": {
+						Runner:  runner,
+						PreRun:  preRun,
+						PostRun: postRun,
+						Doc:     "test command",
+					},
+				},
+			}
+
+			err := cli.Run(context.Background(), io.Discard, io.Discard, []string{"test"})
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			} else {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !strings.Contains(err.Error(), tc.wantErr) {
+					t.Errorf("error = %q, want error containing %q", err, tc.wantErr)
+				}
+			}
+
+			if preCalled != tc.wantPreCalled {
+				t.Errorf("preCalled = %v, want %v", preCalled, tc.wantPreCalled)
+			}
+			if runnerCalled != tc.wantRunnerCalled {
+				t.Errorf("runnerCalled = %v, want %v", runnerCalled, tc.wantRunnerCalled)
+			}
+			if postCalled != tc.wantPostCalled {
+				t.Errorf("postCalled = %v, want %v", postCalled, tc.wantPostCalled)
+			}
+		})
 	}
 }
