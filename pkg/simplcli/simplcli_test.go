@@ -6,9 +6,109 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"strings"
 	"testing"
 )
+
+//nolint:errcheck
+func ExampleSimplCLI() {
+	greetRunner := func(_ context.Context, stdout, _ io.Writer, _ []string) error {
+		fmt.Fprintln(stdout, "hello!")
+		return nil
+	}
+
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"hello": {Runner: greetRunner, Doc: "say hello"},
+		},
+	}
+
+	if err := cli.Run(context.Background(), os.Stdout, os.Stderr, []string{"hello"}); err != nil {
+		log.Fatal(err)
+	}
+	// Output:
+	// hello!
+}
+
+// Nested SimplCLI
+//
+//nolint:errcheck
+func ExampleSimplCLI_Run() {
+	greetRunner := func(_ context.Context, stdout, _ io.Writer, _ []string) error {
+		fmt.Fprintln(stdout, "hello, world!")
+		return nil
+	}
+
+	childCLI := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"greet": {Runner: greetRunner, Doc: "greet the world"},
+		},
+	}
+
+	parentCLI := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"sub": {Runner: childCLI.Run, Doc: "a nested subcommand"},
+		},
+	}
+	if err := parentCLI.Run(context.Background(), os.Stdout, os.Stderr, []string{"sub", "greet"}); err != nil {
+		log.Fatal(err)
+	}
+	// Output:
+	// hello, world!
+}
+
+//nolint:errcheck
+func ExampleMiddleware() {
+	logMiddleware := func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error {
+		fmt.Fprintln(stdout, "before command")
+		err := next(ctx, stdout, stderr, args)
+		fmt.Fprintln(stdout, "after command")
+		return err
+	}
+
+	greetRunner := func(_ context.Context, stdout, _ io.Writer, _ []string) error {
+		fmt.Fprintln(stdout, "hello, world!")
+		return nil
+	}
+
+	cliWithMiddleware := SimplCLI{
+		Middlewares: []Middleware{logMiddleware},
+		SubCmds: map[string]SubCmd{
+			"greet": {Runner: greetRunner, Doc: "greet someone"},
+		},
+	}
+
+	if err := cliWithMiddleware.Run(context.Background(), os.Stdout, os.Stderr, []string{"greet"}); err != nil {
+		log.Fatal(err)
+	}
+	// Output:
+	// before command
+	// hello, world!
+	// after command
+}
+
+func ExampleSimplCLI_PrintHelp() {
+	noop := func(_ context.Context, _, _ io.Writer, _ []string) error {
+		return nil
+	}
+
+	cli := SimplCLI{
+		SubCmds: map[string]SubCmd{
+			"first":  {noop, "first subcommand"},
+			"second": {noop, "second subcommand"},
+		},
+	}
+
+	if err := cli.PrintHelp(context.Background(), os.Stdout); err != nil {
+		log.Fatal(err)
+	}
+	// Output:
+	// Available subcommands:
+	//    first   first subcommand
+	//   second   second subcommand
+}
 
 func TestSimplCLIRun(t *testing.T) {
 	t.Parallel()
