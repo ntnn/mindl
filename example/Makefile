@@ -10,6 +10,7 @@ MKCERT_VER := 1.4.4
 MKCERT := $(TOOLS_DIR)/mkcert-$(MKCERT_VER)
 
 check: lint test
+tools: $(GOLANGCI_LINT) $(MKCERT)
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
