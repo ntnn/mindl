@@ -65,6 +65,10 @@ func (th *ToolHandler) Download(ctx context.Context) error {
 		return fmt.Errorf("error downloading %q to %q: %w", th.url, outfile, err)
 	}
 
+	if th.inArchive == "" {
+		return iocopy(outfile, th.extractTo)
+	}
+
 	if err := Unarchive(outfile, th.inArchive, th.extractTo); err != nil {
 		return fmt.Errorf("error extracting %q from %q to %q: %w", th.inArchive, outfile, th.extractTo, err)
 	}
