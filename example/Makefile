@@ -9,8 +9,11 @@ GOLANGCI_LINT := $(TOOLS_DIR)/golangci-lint-$(GOLANGCI_LINT_VER)
 MKCERT_VER := 1.4.4
 MKCERT := $(TOOLS_DIR)/mkcert-$(MKCERT_VER)
 
+GORELEASER_VER := 2.15.3
+GORELEASER := $(TOOLS_DIR)/goreleaser-$(GORELEASER_VER)
+
 check: lint test
-tools: $(GOLANGCI_LINT) $(MKCERT)
+tools: $(GOLANGCI_LINT) $(MKCERT) $(GORELEASER)
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
@@ -34,3 +37,7 @@ $(GOLANGCI_LINT):
 $(MKCERT):
 	mkdir -p $(TOOLS_DIR)
 	$(GO) tool github.com/ntnn/mindl download -common -out $@ -tool mkcert -version $(MKCERT_VER)
+
+$(GORELEASER):
+	mkdir -p $(TOOLS_DIR)
+	$(GO) tool github.com/ntnn/mindl download -common -out $@ -tool goreleaser -version $(GORELEASER_VER)
