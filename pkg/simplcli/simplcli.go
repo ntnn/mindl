@@ -1,4 +1,3 @@
-// Package simplcli provides a very simplistic implementation of a CLI structure.
 package simplcli
 
 import (
@@ -23,19 +22,23 @@ const (
 // Runner is the interface expected for functions being executed as a subcommand.
 type Runner func(ctx context.Context, stdout, stderr io.Writer, args []string) error
 
-// SubCmd is a CLI subcommand implementation.
+// SubCmd is a CLI subcommand.
 type SubCmd struct {
+	// Runner is the function to be executed when this sub command is run.
 	Runner Runner
-	Doc    string
+	// Doc is the doc string used when printing the help output.
+	Doc string
 }
 
-// Middleware is a function that wraps [Runner]s.
+// Middleware is a function that wraps [Runner].
 type Middleware func(ctx context.Context, stdout, stderr io.Writer, args []string, next Runner) error
 
-// SimplCLI contains multiple [SubCmd]s.
+// SimplCLI contains multiple [SubCmd]'s.
 type SimplCLI struct {
-	SubCmds     map[string]SubCmd
-	Middlewares []Middleware // A list of middlewares to be applied to all subcommands.
+	// The [SubCmd]'s to execute.
+	SubCmds map[string]SubCmd
+	// A list of middlewares to be applied to all subcommands.
+	Middlewares []Middleware
 }
 
 var (
