@@ -3,9 +3,12 @@ package cmd
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"os"
 	"strings"
+	"text/template"
 
 	"github.com/ntnn/mindl/pkg/mindl"
 	"github.com/ntnn/mindl/pkg/simplcli"
@@ -14,8 +17,9 @@ import (
 // Common dispatches common subcommands.
 var Common = simplcli.SimplCLI{
 	SubCmds: map[string]simplcli.SubCmd{
-		"list":   {CommonList, "List available common tools"},
-		"detail": {CommonDetail, "Output details of common tools"},
+		"list":      {CommonList, "List available common tools"},
+		"detail":    {CommonDetail, "Output details of common tools"},
+		"bootstrap": {CommonBootstrap, "Bootstrap a common tool"},
 	},
 }
 
@@ -61,6 +65,60 @@ func CommonDetail(_ context.Context, stdout, stderr io.Writer, args []string) er
 
 	if len(erroredTools) > 0 {
 		return fmt.Errorf("some tools were not found: %s", strings.Join(erroredTools, ", "))
+	}
+
+	return nil
+}
+
+var toolTemplate = `
+{{.Var}}_VER := 0.0.0
+{{.Var}} := {{.ToolsDir}}/{{.Tool}}-$({{.Var}}_VER)
+
+$({{.Var}}):
+	mkdir -p {{.ToolsDir}}
+	{{.Mindl}} download -common -out $@ -tool {{.Tool}} -version $({{.Var}}_VER)
+`
+
+var defaultPerm os.FileMode = 0600
+
+// CommonBootstrap writes the boilerplate to ensure a common tool to Makefile.
+func CommonBootstrap(_ context.Context, _, stderr io.Writer, args []string) error {
+	fs := flag.NewFlagSet("", flag.ExitOnError)
+	fMakefile := fs.String("makefile", "Makefile", "Makefile to append to")
+	fToolsdir := fs.String("toolsdir", "$(TOOLS_DIR)", "The tools dir to reference")
+	fMindl := fs.String("mindl", "$(GO) tool github.com/ntnn/mindl", "How to run mindl")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	t, err := template.New("").Parse(toolTemplate)
+	if err != nil {
+		return fmt.Errorf("error parsing template: %w", err)
+	}
+
+	f, err := os.OpenFile(*fMakefile, os.O_RDWR|os.O_CREATE|os.O_APPEND, defaultPerm)
+	if err != nil {
+		return fmt.Errorf("error opening %q to append: %w", *fMakefile, err)
+	}
+	defer f.Close()
+
+	for _, tool := range args {
+		varname := strings.ReplaceAll(strings.ToUpper(tool), "-", "_")
+
+		data := map[string]string{
+			// golangci-lint => GOLANGCI_LINT
+			"Var": varname,
+			// golangci-lint
+			"Tool": tool,
+			// $(TOOLS_DIR)
+			"ToolsDir": *fToolsdir,
+			// $(GO) tool run github.com/ntnn/mindl
+			"Mindl": *fMindl,
+		}
+
+		if err := t.Execute(f, data); err != nil {
+			_, _ = fmt.Fprintf(stderr, "error templating %q: %v", tool, err)
+		}
 	}
 
 	return nil
