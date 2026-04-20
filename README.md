@@ -1,7 +1,6 @@
 # mindl
 
-mindl is a downloader that only uses Go's stdlib to have a no-dependency
-tool to download pre-built binaries from releases.
+mindl is a no-dependency downloader for release artifacts like pre-built binaries.
 
 ## Usage
 
