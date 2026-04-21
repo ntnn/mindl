@@ -12,6 +12,7 @@ MKCERT := $(TOOLS_DIR)/mkcert-$(MKCERT_VER)
 GORELEASER_VER := 2.15.3
 GORELEASER := $(TOOLS_DIR)/goreleaser-$(GORELEASER_VER)
 
+
 check: lint test
 tools: $(GOLANGCI_LINT) $(MKCERT) $(GORELEASER)
 

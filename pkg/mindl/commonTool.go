@@ -20,4 +20,8 @@ var CommonTools = map[string]CommonTool{
 		URL:       "https://github.com/goreleaser/goreleaser/releases/download/v{{.Version}}/goreleaser_{{.OS | title}}_{{.Arch | x86_64}}.{{.OSArchive}}",
 		InArchive: "goreleaser{{.Exe}}",
 	},
+	"kcp": {
+		URL:       "https://github.com/kcp-dev/kcp/releases/download/v{{.Version}}/kcp_{{.Version}}_{{.OS}}_{{.Arch}}.tar.gz",
+		InArchive: "bin/kcp",
+	},
 }
