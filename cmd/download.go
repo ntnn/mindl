@@ -25,7 +25,7 @@ var (
 // as well if they are not set yet.
 //
 //nolint:cyclop // Just flag handling, not that complex.
-func Download(ctx context.Context, _, _ io.Writer, args []string) error {
+func Download(ctx context.Context, _, stderr io.Writer, args []string) error {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
 	fURL := fs.String("url", "", "URL for the archive to download, templated")
 	fInArchive := fs.String("inarchive", "", "Path of the file to extract from the archive, templated")
@@ -64,7 +64,7 @@ func Download(ctx context.Context, _, _ io.Writer, args []string) error {
 		if *fCommon {
 			targets = append(targets, mindl.CommonTargets...)
 		}
-		if err := updateTargets(ctx, db, tool, *fVersion, mindl.DeduplicateTargets(targets)); err != nil {
+		if err := updateTargets(ctx, db, tool, *fVersion, mindl.DeduplicateTargets(targets), stderr); err != nil {
 			return err
 		}
 	}
@@ -124,11 +124,13 @@ func downloadCurrent(
 func updateTargets(
 	ctx context.Context, db *sum.DB, tool mindl.Tool,
 	version string, targets []mindl.Target,
+	stderr io.Writer,
 ) error {
 	for _, t := range targets {
 		h, err := downloadAndHash(ctx, tool, t, version, "", "", hasher)
 		if err != nil {
-			return err
+			_, _ = fmt.Fprintf(stderr, "skipping %s/%s, combination likely doesn't exist: %v\n", t.OS, t.Arch, err)
+			continue
 		}
 		db.Set(tool.URLTemplate, tool.InArchive, t.OS, t.Arch, h, hasherDescr)
 	}
