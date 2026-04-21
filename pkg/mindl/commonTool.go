@@ -24,4 +24,8 @@ var CommonTools = map[string]CommonTool{
 		URL:       "https://github.com/kcp-dev/kcp/releases/download/v{{.Version}}/kcp_{{.Version}}_{{.OS}}_{{.Arch}}.tar.gz",
 		InArchive: "bin/kcp",
 	},
+	"kubectl": {
+		URL:       "https://dl.k8s.io/v{{.Version}}/kubernetes-client-{{.OS}}-{{.Arch}}.tar.gz",
+		InArchive: "kubernetes/client/bin/kubectl{{.Exe}}",
+	},
 }
