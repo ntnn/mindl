@@ -28,4 +28,8 @@ var CommonTools = map[string]CommonTool{
 		URL:       "https://dl.k8s.io/v{{.Version}}/kubernetes-client-{{.OS}}-{{.Arch}}.tar.gz",
 		InArchive: "kubernetes/client/bin/kubectl{{.Exe}}",
 	},
+	"setup-envtest": {
+		URL:       "https://github.com/kubernetes-sigs/controller-runtime/releases/download/v{{.Version}}/setup-envtest-{{.OS}}-{{.Arch}}{{.Exe}}",
+		InArchive: "",
+	},
 }
