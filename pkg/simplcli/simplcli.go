@@ -55,7 +55,8 @@ func (s SimplCLI) Run(ctx context.Context, stdout, stderr io.Writer, args []stri
 	}
 
 	cmd := args[0]
-	if cmd == Help {
+	switch cmd {
+	case Help, "-h", "--help":
 		return s.PrintHelp(ctx, stdout)
 	}
 
