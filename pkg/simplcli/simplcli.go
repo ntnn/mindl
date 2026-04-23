@@ -51,11 +51,12 @@ var (
 // If the first argument is "help" all registered subcommands are printed to out.
 func (s SimplCLI) Run(ctx context.Context, stdout, stderr io.Writer, args []string) error {
 	if len(args) == 0 {
-		return ErrNoArgs
+		return errors.Join(ErrNoArgs, s.PrintHelp(ctx, stdout))
 	}
 
 	cmd := args[0]
-	if cmd == Help {
+	switch cmd {
+	case Help, "-h", "--help":
 		return s.PrintHelp(ctx, stdout)
 	}
 
