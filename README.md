@@ -1,5 +1,8 @@
 # mindl
 
+> [!WARNING]
+> mindl has moved to codeberg: https://codeberg.org/ntnn/mindl
+
 mindl is a no-dependency downloader for release artifacts like pre-built binaries.
 
 ## Usage
